@@ -30,10 +30,10 @@ def load_tagged_image(folder_path: str) -> tuple[npt.NDArray, npt.NDArray]:
         Ch_idx = titles.index("Ch")
         for a in csv_read:
             new_array = [
-                a[X_idx],
-                a[Y_idx],
-                a[Z_idx],
-                a[Ch_idx]
+                float(a[X_idx]),
+                float(a[Y_idx]),
+                int(a[Z_idx]),
+                int(a[Ch_idx])
             ]
             points_array.append(new_array)
     points_array = np.array(points_array)
