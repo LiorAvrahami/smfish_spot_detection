@@ -46,7 +46,6 @@ def make_small_background(large_background_image, relevant_channels=None, releva
 
 
 def preform_random_transformation(image):
-    # TODO reorder these
     # if equals 1 then doesn't flip, if equals -1 then flips the relevant axis
     b_flip_x = 1 if np.random.randint(0, 2) == 0 else -1
     b_flip_y = 1 if np.random.randint(0, 2) == 0 else -1
@@ -54,6 +53,6 @@ def preform_random_transformation(image):
     b_rotate = True if np.random.randint(0, 2) == 0 else False
 
     if b_rotate:
-        return np.rot90(image[::b_flip_x, ::b_flip_y])
+        return np.rot90(image[::b_flip_x, ::b_flip_y, :, :])
     else:
-        return image[::b_flip_x, ::b_flip_y]
+        return image[::b_flip_x, ::b_flip_y, :, :]

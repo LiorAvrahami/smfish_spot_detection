@@ -20,6 +20,8 @@ def list_images(directory_path):
 
 def convert_tiff_to_numpy(image_path):
     im = io.imread(image_path)
+    # reorder axes to be: x,y,z,ch
+    im.transpose(1, 2, 0, 3)
 
     return im
 
