@@ -1,7 +1,7 @@
 # image_path = 'pathtotheimage'
 
 import os
-from PIL import Image
+from skimage import io
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,13 +19,9 @@ def list_images(directory_path):
 
 
 def convert_tiff_to_numpy(image_path):
-    # Load the selected image using PIL
-    image_pil = Image.open(image_path)
+    im = io.imread(image_path)
 
-    # Convert PIL image to NumPy array
-    image_np = np.array(image_pil)
-
-    return image_np
+    return im
 
 
 def main():
