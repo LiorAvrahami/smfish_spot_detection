@@ -19,9 +19,16 @@ def list_images(directory_path):
 
 
 def convert_tiff_to_numpy(image_path):
-    im = io.imread(image_path)
-    # reorder axes to be: x,y,z,ch
-    im.transpose(1, 2, 0, 3)
+    im = io.imread(image_path).astype(float)
+    
+    # identify what each axis means, we assume that in the remaining two x-axis comes before the y axis.
+    axes_indexes_sorted_by_size = np.argsort(im.shape)
+    ch_index = axes_indexes_sorted_by_size[0]
+    z_index = axes_indexes_sorted_by_size[1]
+    x_index = min({0,1,2,3} - {ch_index,z_index})
+    y_index = min({0,1,2,3} - {ch_index,z_index,x_index})
+    # reorder axes to be: x,y,z,ch. assume ch_axis size is smallest, then z_axis size.
+    im = im.transpose(x_index, y_index, z_index, ch_index)
 
     return im
 

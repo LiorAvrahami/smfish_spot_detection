@@ -13,13 +13,17 @@ def crop_image(large_image: npt.NDArray[np.float64], top_left: tuple[int, int], 
                        relevant_z_min:relevant_z_min + CROPPED_IMAGE_SIZE[2], relevant_channels]
 
 
-def normalize_image(image: npt.NDArray[np.float64]):
-    normalized_image = np.copy(image)
+def normalize_image(image: npt.NDArray[np.float64], force_normalization_quantiles=None, original_big_image_array=None):
+    if original_big_image_array is None:
+        original_big_image_array = image
+    normalization_quantiles = NORMALIZATION_QUANTILES if force_normalization_quantiles is None else force_normalization_quantiles
+    normalized_image = np.copy(image).astype(float)
+    return normalized_image
     num_channels = image.shape[-1]
     # normalize each channel separately
     for ch_idx in range(num_channels):
         sub_image = image[..., ch_idx]
-        low_quantile, high_quantile = np.quantile(sub_image, NORMALIZATION_QUANTILES)
+        low_quantile, high_quantile = np.quantile(original_big_image_array[..., ch_idx], normalization_quantiles)
         # we want the normalize low to be -1 and high to be 1.
         normalized_image[..., ch_idx] = sub_image * 2 / (high_quantile - low_quantile) - \
             (high_quantile + low_quantile) / (high_quantile - low_quantile)
