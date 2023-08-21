@@ -4,3 +4,4 @@ __pycache__
 figures/*
 *.mat
 OG_Big_Image.tif
+OG_Big_Image.nd2

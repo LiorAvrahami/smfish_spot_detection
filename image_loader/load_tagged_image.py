@@ -1,6 +1,6 @@
 import os
 from typing import Optional
-from .Image2numpy import convert_tiff_to_numpy
+from .Image2numpy import convert_image_file_to_numpy
 import numpy.typing as npt
 import numpy as np
 import csv
@@ -21,10 +21,10 @@ def load_tagged_image(folder_path: str, force_normalization_quantiles: Optional[
                                                 the points dimensions are in the order: x,y,z,channel
     """
     image_file_path = os.path.join(folder_path, "image.tif")
-    original_big_image_file_path = os.path.join(folder_path, "OG_Big_Image.tif")
+    original_big_image_file_path = os.path.join(folder_path, "OG_Big_Image.nd2")
     points_file_path = os.path.join(folder_path, "Results.csv")
-    image_array = convert_tiff_to_numpy(image_file_path)
-    original_big_image_array = convert_tiff_to_numpy(original_big_image_file_path)
+    image_array = convert_image_file_to_numpy(image_file_path)
+    original_big_image_array = convert_image_file_to_numpy(original_big_image_file_path)
     # normalize image
     image_array = normalize_image(image_array,
                                   force_normalization_quantiles=force_normalization_quantiles,
