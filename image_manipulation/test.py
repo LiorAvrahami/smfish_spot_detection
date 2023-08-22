@@ -1,7 +1,6 @@
-from re import T
 import numpy as np
 import scipy.ndimage
-from image_loader.Image2numpy import convert_tiff_to_numpy
+from image_loader.Image2numpy import convert_image_file_to_numpy
 from image_loader.load_tagged_image import load_tagged_image
 import matplotlib.pyplot as plt
 
@@ -14,7 +13,7 @@ if False:
     plt.plot(points[:,0],points[:,1],"xr")
 
 # plot graph of intensity vs z
-if True:
+if False:
     image, points = load_tagged_image("images\\tagged_images\\img2")
     points_to_draw = np.arange(10)
     # draw image
@@ -30,9 +29,8 @@ if True:
         plt.plot([z],[image[x,y,z,ch]],"xr")
 
 # laplacian of gaussian
-if False:
+if True:
     image, points = load_tagged_image("images\\tagged_images\\img2")
-    image = image.astype(float)
     ch_index = 0
     plt.figure()
     plt.imshow(np.max(image[:, :, :, ch_index], axis=-1))

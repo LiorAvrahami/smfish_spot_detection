@@ -1,9 +1,24 @@
 import itertools
 import numpy as np
 import numpy.typing as npt
+from synthesize_points_module.points_parameters_generator import PointsParametersGenerator
+from synthesize_points_module.decay_functions import *
 
 
-def add_points_to_image(image, num_points, radius_1_min_max, radius_2_min_max, radius_3_min_max,
+def add_points_to_image_multichannel(image: npt.NDArray, param_generator: PointsParametersGenerator) -> npt.NDArray[np.float32]:
+    dots_locations = []
+    for ch_idx in range(image.shape[-1]):
+        if np.random.randint(0, 2) == 0:
+            continue
+        dots_locations_3d = add_points_to_image(image[..., ch_idx], **param_generator.get_points_parameters())
+        dots_locations.extend(np.concatenate(
+            [dots_locations_3d, np.full((dots_locations_3d.shape[0], 1), ch_idx)],
+            axis=-1
+        ))
+    return np.array(dots_locations).reshape(len(dots_locations), 4)
+
+
+def add_points_to_image(image: npt.NDArray, points_density, radius_1_min_max, radius_2_min_max, radius_3_min_max,
                         intensity_min_max, decay_function, z_metric_factor) -> npt.NDArray[np.float32]:
     """_summary_
 
@@ -14,6 +29,7 @@ def add_points_to_image(image, num_points, radius_1_min_max, radius_2_min_max, r
     Returns:
         npt.NDArray[np.float32]: the locations of the added points. shape is (num_points,3)
     """
+    num_points = get_num_points(image, points_density)
     point_images, point_sub_pixel_displacement = make_points_shapes(num_points, radius_1_min_max, radius_2_min_max, radius_3_min_max,
                                                                     intensity_min_max, decay_function, z_metric_factor)
     centers_x = np.random.uniform(0, image.shape[0], num_points).astype(np.int32)
@@ -24,6 +40,10 @@ def add_points_to_image(image, num_points, radius_1_min_max, radius_2_min_max, r
         plant_point_in_image(point_images[point_index], image, centers_x[point_index],
                              centers_y[point_index], centers_z[point_index])
     return point_sub_pixel_displacement + centers_vectors
+
+
+def get_num_points(image, points_density):
+    return int(image.size * points_density)
 
 
 def make_points_shapes(num_points, radius_1_min_max, radius_2_min_max, radius_3_min_max,
@@ -71,13 +91,13 @@ def make_points_shapes(num_points, radius_1_min_max, radius_2_min_max, radius_3_
         np.matmul(rotation_matrix_inverse, non_rotated_metric_matrixes), rotation_matrix)
 
     # the point's image size is equal to the largest radius times 4
-    image_size = int(max(radius_1_min_max[1], radius_2_min_max[1], radius_3_min_max[1])) * 4
+    image_size = int(max(radius_1_min_max[1], radius_2_min_max[1], radius_3_min_max[1])) * 8
     point_images = np.full((num_points, image_size, image_size, image_size), np.nan, np.float32)
 
     image_coordinates_1d = np.arange(image_size, dtype=np.float32)
     image_coordinates_1d -= np.mean(image_coordinates_1d)
     image_coordinates_vectors_base = np.array(np.meshgrid(image_coordinates_1d, image_coordinates_1d,
-                                                          image_coordinates_1d, indexing='ij'))
+                                                          image_coordinates_1d * z_metric_factor, indexing='ij'))
     image_coordinates_vectors_base = image_coordinates_vectors_base.transpose(1, 2, 3, 0)
 
     for point_index in range(num_points):
@@ -95,7 +115,7 @@ def make_points_shapes(num_points, radius_1_min_max, radius_2_min_max, radius_3_
         point_images[point_index] = intensity_array[point_index] * \
             decay_function(image_coordinates_distances_array[..., 0, 0])
 
-    return point_images, sub_pixel_displacement_array
+    return point_images, sub_pixel_displacement_array - 0.5
 
 
 def plant_point_in_image(point_image: npt.NDArray[np.float32], target_image, center_x: int, center_y: int, center_z: int):
@@ -109,6 +129,4 @@ def plant_point_in_image(point_image: npt.NDArray[np.float32], target_image, cen
                     max(point_sz_y // 2 - center_y, 0): point_sz_y // 2 + image_sz_y - center_y,
                     max(point_sz_z // 2 - center_z, 0): point_sz_z // 2 + image_sz_z - center_z]
 
-
-def exponential_decay(arr):
-    return np.exp(-arr)
+# %%

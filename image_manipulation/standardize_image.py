@@ -9,8 +9,10 @@ def crop_image(large_image: npt.NDArray[np.float64], top_left: tuple[int, int], 
         relevant_channels = DEFAULT_CHANNELS
     if relevant_z_min is None:
         relevant_z_min = DEFAULT_ZMIN
-    return large_image[top_left[0]:top_left[0] + CROPPED_IMAGE_SIZE[0], top_left[1] + CROPPED_IMAGE_SIZE[1],
-                       relevant_z_min:relevant_z_min + CROPPED_IMAGE_SIZE[2], relevant_channels]
+    return large_image[top_left[0]:top_left[0] + CROPPED_IMAGE_SIZE[0],
+                       top_left[1]:top_left[1] + CROPPED_IMAGE_SIZE[1],
+                       relevant_z_min:relevant_z_min + CROPPED_IMAGE_SIZE[2],
+                       relevant_channels]
 
 
 def normalize_image(image: npt.NDArray[np.float64], force_normalization_quantiles=None, original_big_image_array=None):
