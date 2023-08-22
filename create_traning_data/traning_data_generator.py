@@ -1,4 +1,3 @@
-from regex import P
 from synthesize_points_module.synthesize_points import add_points_to_image_multichannel
 from synthesize_points_module.points_parameters_generator import PointsParametersGenerator
 from create_traning_data.make_small_backgrounds import SmallBackgroundGenerator
