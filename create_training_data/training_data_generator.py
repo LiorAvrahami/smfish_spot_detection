@@ -69,22 +69,31 @@ class ClassifierTrainingDataGenerator():
         image_size = 5
         images = []
         is_image_of_dot = []
+
+        def append(img, tag):
+            if img[0].size != (image_size * 2 + 1)**3:
+                return
+            images.append(img)
+            is_image_of_dot.append(tag)
+
         while len(images) < self.batch_size:
             image = self.backgrounds_generator.get_next()
             dots_locations = add_points_to_image_multichannel(image, self.points_parameters_generator)
             for dot_location in dots_locations:
-                images.append(image[int(dot_location[0]) - image_size:int(dot_location[0]) + image_size,
-                                    int(dot_location[1]) - image_size:int(dot_location[1]) + image_size,
-                                    int(dot_location[2]) - image_size:int(dot_location[2]) + image_size,
-                                    :])
+                append(image[int(dot_location[0]) - image_size:int(dot_location[0]) + image_size,
+                             int(dot_location[1]) - image_size:int(dot_location[1]) + image_size,
+                             int(dot_location[2]) - image_size:int(dot_location[2]) + image_size,
+                             :],
+                       True)
             for dot_location in dots_locations:
                 x = np.random.uniform(0, image.shape[0])
                 y = np.random.uniform(0, image.shape[1])
                 z = np.random.uniform(0, image.shape[2])
-                images.append(image[int(x) - image_size:int(x) + image_size,
-                                    int(y) - image_size:int(y) + image_size,
-                                    int(z) - image_size:int(z) + image_size,
-                                    :])
+                append(image[int(x) - image_size:int(x) + image_size,
+                             int(y) - image_size:int(y) + image_size,
+                             int(z) - image_size:int(z) + image_size,
+                             :],
+                       False)
         images = images[:self.batch_size]
         is_image_of_dot = is_image_of_dot[:self.batch_size]
         return images, is_image_of_dot
