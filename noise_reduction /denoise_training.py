@@ -8,7 +8,7 @@ from create_training_data.training_data_generator import NoiseReductionTrainingD
 from custom_dataset import CustomDataset
 
 
-def create_fresh_batch(num_of_elements=32):
+def create_fresh_batch(num_of_elements=128):
     PicGenerator = NoiseReductionTrainingDataGenerator.make_default_training_data_generator(num_of_elements)
     PicsBatch = PicGenerator.get_next_batch()
     train_dl = CustomDataset(PicsBatch)
@@ -24,6 +24,10 @@ def train_valid_loop(net, num_of_batches=1000, Nepochs=40, learning_rate=0.001):
     optimizer = optim.Adam(net.parameters(), lr=learning_rate)  # use Adam
 
     ### Check for GPU
+    import os
+    os.environ['PYTORCH_METAL'] = '1'
+    import torch
+
     device = torch.device("cpu")
     if torch.cuda.is_available():
         print('Found GPU!')

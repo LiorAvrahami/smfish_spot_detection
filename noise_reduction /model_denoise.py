@@ -10,20 +10,20 @@ class DenoiseNet(nn.Module):
     def __init__(self):
         super().__init__()
         print("2")
-        num_of_features = 16  # for now
+        num_of_features = 8  # for now
 
         self.model = nn.Sequential(OrderedDict([
-            ('conv1-1', nn.Conv3d(in_channels=1, out_channels=num_of_features, kernel_size=5, padding="same")),
+            ('conv1-1', nn.Conv3d(in_channels=1, out_channels=num_of_features, kernel_size=3, padding="same")),
             ('conv1-2', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
             ('batch_norm_1', nn.BatchNorm3d(num_of_features)),
             ('relu1', nn.ReLU()),
 
-            # ('conv2-1', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
-            # ('conv2-2', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
-            # ('conv2-3', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
-            # ('batch_norm_2', nn.BatchNorm3d(num_of_features)),
-            # ('relu2', nn.ReLU()),
-            #
+            ('conv2-1', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
+            ('conv2-2', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
+            ('conv2-3', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
+            ('batch_norm_2', nn.BatchNorm3d(num_of_features)),
+            ('relu2', nn.ReLU()),
+
             # ('conv3-1', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
             # ('conv3-2', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
             # ('conv3-3', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
