@@ -36,11 +36,15 @@ class spots_classifier_net(nn.Module):
             ('relu3-2', nn.ReLU()),
             ('drop3',nn.Dropout(p=0.15)),
 
-            ('fcn1', nn.Linear(5,100)),
+            ('flatten',nn.Flatten()),
+
+            ('fcn1', nn.Linear(1250,100)),
             ('relu4-1', nn.ReLU()),
             ('fcn2', nn.Linear(100,100)),
             ('relu4-2', nn.ReLU()),
             ('fcn3', nn.Linear(100,1)),
+            ('flatten2',nn.Flatten(0)),
+
         ]))
         
         
