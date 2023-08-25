@@ -36,13 +36,17 @@ class spots_classifier_net(nn.Module):
             ('relu3-2', nn.ReLU()),
             ('drop3',nn.Dropout(p=0.15)),
 
-            ('sig_out', nn.Sigmoid()),
+            ('fcn1', nn.Linear(5,100)),
+            ('relu4-1', nn.ReLU()),
+            ('fcn2', nn.Linear(100,100)),
+            ('relu4-2', nn.ReLU()),
+            ('fcn3', nn.Linear(100,1)),
         ]))
         
         
-    def forward(self):
+    def forward(self,x):
         
         ### Now pass the input image x through the network layers
         ### Then add the result to the input image (to offset the noise
-
-        return self.model()
+        rslt = self.model(x)
+        return rslt
