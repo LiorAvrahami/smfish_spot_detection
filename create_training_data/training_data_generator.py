@@ -126,7 +126,7 @@ class ClassifierCheckerDataGenerator(ClassifierTrainingDataGenerator):
             self.images_tags.append((image, points_array))
 
     def get_image_and_points(self):
-        if self.image_index > len(self.images_tags):
+        if self.image_index >= len(self.images_tags):
             self.image_index = 0
             raise StopIteration()
         v = self.images_tags[self.image_index]
