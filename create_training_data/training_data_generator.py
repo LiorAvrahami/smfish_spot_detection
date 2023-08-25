@@ -1,7 +1,9 @@
+import os
 import numpy as np
 from synthesize_points_module.synthesize_points import add_points_to_image_multichannel
 from synthesize_points_module.points_parameters_generator import PointsParametersGenerator
 from create_training_data.make_small_backgrounds import SmallBackgroundGenerator
+from image_loader.load_tagged_image import load_tagged_image
 
 
 class NoiseReductionTrainingDataGenerator():
@@ -59,6 +61,11 @@ class ClassifierTrainingDataGenerator():
     def __next__(self):
         return self.get_next_batch()
 
+    def get_image_and_points(self):
+        image = self.backgrounds_generator.get_next()
+        dots_locations = add_points_to_image_multichannel(image, self.points_parameters_generator)
+        return image, dots_locations
+
     def get_next_batch(self):
         """returns a batch of images of the size that was detailed in the initialization
 
@@ -80,15 +87,17 @@ class ClassifierTrainingDataGenerator():
             return True
 
         while len(images) < self.batch_size:
-            image = self.backgrounds_generator.get_next()
-            dots_locations = add_points_to_image_multichannel(image, self.points_parameters_generator)
+            try:
+                image, dots_locations = self.get_image_and_points()
+            except StopIteration:
+                break
             for dot_location in dots_locations:
                 b_success = append(
                     image[int(dot_location[0]) - image_size:int(dot_location[0]) + image_size + 1,
                           int(dot_location[1]) - image_size:int(dot_location[1]) + image_size + 1,
                           :,
                           :],
-                    dot_location[-1]+1)
+                    dot_location[-1] + 1)
                 num_dots += 1 if b_success else 0
             while num_not_dots < num_dots:
                 x = np.random.uniform(0, image.shape[0])
@@ -102,3 +111,33 @@ class ClassifierTrainingDataGenerator():
         images = images[:self.batch_size]
         is_image_of_dot = is_image_of_dot[:self.batch_size]
         return images, is_image_of_dot
+
+
+class ClassifierCheckerDataGenerator(ClassifierTrainingDataGenerator):
+    images_tags: list[tuple]
+    image_index = 0
+
+    def __init__(self, folder_path: str) -> None:
+        image_folder_names = os.listdir(folder_path)
+        self.images_tags = []
+        for name in image_folder_names:
+            image, points_array = load_tagged_image(os.path.join(folder_path, name))
+            self.images_tags.append((image, points_array))
+
+    def get_image_and_points(self):
+        if self.image_index > len(self.images_tags):
+            self.image_index = 0
+            raise StopIteration()
+        v = self.images_tags[self.image_index]
+        self.image_index += 1
+        return v
+
+
+class ClassifierValidationDataGenerator(ClassifierCheckerDataGenerator):
+    def __init__(self) -> None:
+        super().__init__(os.path.join("images", "tagged_images_validation"))
+
+
+class ClassifierTestDataGenerator(ClassifierCheckerDataGenerator):
+    def __init__(self) -> None:
+        super().__init__(os.path.join("images", "tagged_images_test"))
