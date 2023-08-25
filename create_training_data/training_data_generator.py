@@ -71,7 +71,7 @@ class ClassifierTrainingDataGenerator():
         is_image_of_dot = []
 
         def append(img, tag):
-            if img[0].size != (image_size * 2 + 1)**3:
+            if img.shape[:2] != (image_size * 2 + 1, image_size * 2 + 1):
                 return
             images.append(img)
             is_image_of_dot.append(tag)
@@ -80,9 +80,9 @@ class ClassifierTrainingDataGenerator():
             image = self.backgrounds_generator.get_next()
             dots_locations = add_points_to_image_multichannel(image, self.points_parameters_generator)
             for dot_location in dots_locations:
-                append(image[int(dot_location[0]) - image_size:int(dot_location[0]) + image_size,
-                             int(dot_location[1]) - image_size:int(dot_location[1]) + image_size,
-                             int(dot_location[2]) - image_size:int(dot_location[2]) + image_size,
+                append(image[int(dot_location[0]) - image_size:int(dot_location[0]) + image_size + 1,
+                             int(dot_location[1]) - image_size:int(dot_location[1]) + image_size + 1,
+                             :,
                              :],
                        True)
             for dot_location in dots_locations:
