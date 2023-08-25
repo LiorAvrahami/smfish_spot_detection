@@ -118,6 +118,7 @@ class ClassifierCheckerDataGenerator(ClassifierTrainingDataGenerator):
     image_index = 0
 
     def __init__(self, folder_path: str) -> None:
+        super().__init__(10000, None, None)
         image_folder_names = os.listdir(folder_path)
         self.images_tags = []
         for name in image_folder_names:
