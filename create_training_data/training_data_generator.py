@@ -76,7 +76,7 @@ class ClassifierTrainingDataGenerator():
             if img.shape[:2] != (image_size * 2 + 1, image_size * 2 + 1):
                 return False
             images.append(img)
-            is_image_of_dot.append(int(tag))
+            is_image_of_dot.append(float(tag))
             return True
 
         while len(images) < self.batch_size:
