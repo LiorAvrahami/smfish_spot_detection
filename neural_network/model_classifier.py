@@ -15,7 +15,7 @@ class spots_classifier_net(nn.Module):
         ### or you can combine them using the nn.Sequential() class and an OrderedDict (very clean!)
 
         self.model = nn.Sequential(OrderedDict([
-            ('conv1-1', nn.Conv3d(in_channels=1, out_channels=channel_num, kernel_size=3, padding="same")),
+            ('conv1-1', nn.Conv3d(in_channels=3, out_channels=channel_num, kernel_size=3, padding="same")),
             ('relu1-1', nn.ReLU()),
             ('conv1-2', nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
             ('relu1-2', nn.ReLU()),
