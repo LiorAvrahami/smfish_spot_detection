@@ -77,6 +77,7 @@ class ClassifierTrainingDataGenerator():
                 return False
             images.append(img)
             is_image_of_dot.append(tag)
+            is_image_of_dot.append(tag)
             return True
 
         while len(images) < self.batch_size:
@@ -88,7 +89,7 @@ class ClassifierTrainingDataGenerator():
                           int(dot_location[1]) - image_size:int(dot_location[1]) + image_size + 1,
                           :,
                           :],
-                    True)
+                    dot_location[-1]+1)
                 num_dots += 1 if b_success else 0
             while num_not_dots < num_dots:
                 x = np.random.uniform(0, image.shape[0])
@@ -97,7 +98,7 @@ class ClassifierTrainingDataGenerator():
                                          int(y) - image_size:int(y) + image_size + 1,
                                          :,
                                          :],
-                                   False)
+                                   -1)
                 num_not_dots += 1 if b_success else 0
         images = images[:self.batch_size]
         is_image_of_dot = is_image_of_dot[:self.batch_size]
