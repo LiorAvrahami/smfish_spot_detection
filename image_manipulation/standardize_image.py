@@ -20,6 +20,8 @@ def normalize_image(image: npt.NDArray[np.float64], force_normalization_quantile
         original_big_image_array = image
     normalization_quantiles = NORMALIZATION_QUANTILES if force_normalization_quantiles is None else force_normalization_quantiles
     normalized_image = np.copy(image).astype(float)
+    normalized_image -= np.min(original_big_image_array)
+    # normalized_image /= np.std(original_big_image_array)
     return normalized_image
     num_channels = image.shape[-1]
     # normalize each channel separately
