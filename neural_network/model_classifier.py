@@ -9,6 +9,7 @@ class spots_classifier_net(nn.Module):
     def __init__(self):
         super().__init__()
         channel_num = 10
+        output_channels = 1
         ### Add your network layers here...
         ### You should use nn.Conv3d(), nn.BatchNorm2d(), and nn.ReLU()
         ### They can be added as seperate layers and cascaded in the forward
@@ -42,7 +43,8 @@ class spots_classifier_net(nn.Module):
             ('relu4-1', nn.ReLU()),
             ('fcn2', nn.Linear(100,100)),
             ('relu4-2', nn.ReLU()),
-            ('fcn3', nn.Linear(100,1)),
+            ('fcn3', nn.Linear(100,output_channels)),
+            ('sigmoid', nn.Sigmoid()),
             ('flatten2',nn.Flatten(0)),
 
         ]))
