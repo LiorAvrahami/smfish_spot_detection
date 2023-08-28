@@ -49,16 +49,16 @@ class MyDataset(Dataset):
         return img, label
 
 
-# Validation Constants
-val_generator = create_training_data.training_data_generator.ClassifierValidationDataGenerator()
-val_data = val_generator.get_next_batch()
-val_img = val_data[IMG]
-val_label = val_data[TAG]
-val_ds = MyDataset(val_img, val_label)
-valid_dl = DataLoader(val_ds, batch_size=len(val_label), shuffle=True)
-
-
 def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_interval=1500, epoch_report_interval=100, my_seed=0, add_name_str=''):
+    
+    # Validation Constants
+    val_generator = create_training_data.training_data_generator.ClassifierValidationDataGenerator()
+    val_data = val_generator.get_next_batch()
+    val_img = val_data[IMG]
+    val_label = val_data[TAG]
+    val_ds = MyDataset(val_img, val_label)
+    valid_dl = DataLoader(val_ds, batch_size=len(val_label), shuffle=True)
+    
     net = spots_classifier_net()
 
     start_time = datetime.datetime.now()
