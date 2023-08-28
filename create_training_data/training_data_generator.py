@@ -103,6 +103,8 @@ class ClassifierTrainingDataGenerator():
             except StopIteration:
                 break
             for dot_location in dots_locations:
+                if num_dots >= self.batch_size / 2:
+                    break
                 b_success = append(crop(image, int(dot_location[0]), int(dot_location[1])), dot_location[-1])
                 num_dots += 1 if b_success else 0
             while num_not_dots < num_dots:
