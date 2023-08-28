@@ -6,7 +6,7 @@ import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-import torch.nn.functional as func
+import torch.nn as nn
 from tqdm.notebook import tqdm
 import torch.optim as optim
 import pickle
@@ -23,11 +23,12 @@ except:
 
 import create_training_data.training_data_generator
 from neural_network.model_classifier import spots_classifier_net
+from sklearn.model_selection import train_test_split
 
 torch.cuda.is_available()
 np.random.seed(0)
 
-
+loss_function = nn.BCEWithLogitsLoss()
 TAG = 1
 IMG = 0
 
@@ -112,7 +113,7 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         optimizer.zero_grad()  # make sure the gradients are zeroed-out each time!
 
         pred = net(xb)  # pass the input through the net to get the prediction
-        loss = func.cross_entropy(pred, yb)  # use the MSE loss between the prediction and the target
+        loss = loss_function(pred, yb)  # use the MSE loss between the prediction and the target
         loss.backward()
         optimizer.step()  # optimizer step in the direction of negative gradient
 
@@ -122,19 +123,16 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         # Validation
         net.eval()
 
-        valid_loss_epoch = []
-        for xb, yb in valid_dl:
-            # edit yb again, but for the validation section
-            yb = torch.tensor([lst[0] for lst in yb])  # select only the first element
+        xb, yb = next(iter(valid_dl))
+        # edit yb again, but for the validation section
+        yb = torch.tensor([lst[0] for lst in yb])  # select only the first element
 
-            xb = xb.to(device)  # move the validation input to the device
-            yb = yb.to(device)  # move the validation target to the device
+        xb = xb.to(device)  # move the validation input to the device
+        yb = yb.to(device)  # move the validation target to the device
 
-            pred = net(xb)  # same as in training loop
-            loss = func.cross_entropy(pred, yb)  # same as in training loop
-            valid_loss_epoch.append(loss.item())
-
-        valid_loss.append(np.mean(valid_loss_epoch))
+        pred = net(xb)  # same as in training loop
+        loss = loss_function(pred, yb)  # same as in training loop
+        valid_loss.append(loss.item())
 
         # Model checkpointing
         if np.mod(epoch, save_model_interval) == 0 and epoch > 0:

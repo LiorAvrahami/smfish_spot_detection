@@ -3,7 +3,7 @@ image_shape = (image_size * 2 + 1, image_size * 2 + 1)
 
 
 def crop(image, x, y):
-    return image[x - image_size:x + image_size + 1, y - image_size:y + image_size + 1, :, :]
+    return image[x - image_size:x + image_size + 1, y - image_size:y + image_size + 1, :, :3]
 
 
 def is_valid_size(cropped_image):
