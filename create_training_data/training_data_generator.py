@@ -31,7 +31,8 @@ class NoiseReductionTrainingDataGenerator():
 
         Returns:
             list of tuples, each tuple consists of a pair of images,
-            the first image is a synthesized image with some background and the second is a the same image but without the background.
+            the first image is a synthesized image with some background and the second 
+            is a the same image but without the background.
         """
         images = []
         for i in range(self.batch_size):
@@ -71,8 +72,10 @@ class ClassifierTrainingDataGenerator():
         """returns a batch of images of the size that was detailed in the initialization
 
         Returns:
-            list of tuples, each tuple consists of a pair of images,
-            the first image is a synthesized image with some background and the second is a the same image but without the background.
+            list of tuples, each tuple consists of a pair of (image,tag),
+            image is a synthesized image with some background 
+            and the tag is a vector of size 4, with the elements:
+            (does any channel have a point?, does the first channel have a point?, does the second channel have a point?, does the third channel have a point?)
         """
         images = []
         is_image_of_dot = []
@@ -83,7 +86,15 @@ class ClassifierTrainingDataGenerator():
             if not is_valid_size(img):
                 return False
             images.append(img)
-            is_image_of_dot.append(float(tag))
+            if tag is None:
+                tag = [0.0, 0.0, 0.0, 0.0]
+            if tag == 0:
+                tag = [1.0, 1.0, 0.0, 0.0]
+            if tag == 1:
+                tag = [1.0, 0.0, 1.0, 0.0]
+            if tag == 2:
+                tag = [1.0, 0.0, 0.0, 1.0]
+            is_image_of_dot.append(tag)
             return True
 
         while len(images) < self.batch_size:
@@ -92,12 +103,12 @@ class ClassifierTrainingDataGenerator():
             except StopIteration:
                 break
             for dot_location in dots_locations:
-                b_success = append(crop(image, int(dot_location[0]), int(dot_location[1])), dot_location[-1] + 1)
+                b_success = append(crop(image, int(dot_location[0]), int(dot_location[1])), dot_location[-1])
                 num_dots += 1 if b_success else 0
             while num_not_dots < num_dots:
                 x = np.random.uniform(0, image.shape[0])
                 y = np.random.uniform(0, image.shape[1])
-                b_success = append(crop(image, int(x), int(y)), -1)
+                b_success = append(crop(image, int(x), int(y)), None)
                 num_not_dots += 1 if b_success else 0
         images = images[:self.batch_size]
         is_image_of_dot = is_image_of_dot[:self.batch_size]
