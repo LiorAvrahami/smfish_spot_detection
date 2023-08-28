@@ -23,19 +23,20 @@ cleaning_valid = {}
 from create_training_data.training_data_generator import NoiseReductionTrainingDataGenerator
 
 PicGenerator = NoiseReductionTrainingDataGenerator.make_default_training_data_generator(16)
-# need to decide the number of batches. each batch is a list, in which each element is two images - the first one w bg
+# need to decide on the number of batches. each batch is a list, in which each element is two images - the first one
+# w bg
 PicsBatch = PicGenerator.get_next_batch()
 
-# # plot the image
-# image_array_4D = PicsBatch[0][0]  # this is a 4D image
-# z_index = 2
-# Channel_index = 1
-# image_array_slice = image_array_4D[:, :, z_index, Channel_index]
-#
-# # Display the image
-# plt.imshow(image_array_slice, cmap='gray')  # Use 'cmap' parameter to specify colormap (e.g., 'gray')
-# plt.axis('off')  # Turn off axes
-# plt.show()
+# plot the image
+image_array_4D = PicsBatch[0][0]  # this is a 4D image
+z_index = 2
+Channel_index = 1
+image_array_slice = image_array_4D[:, :, z_index, Channel_index]
+
+# Display the image
+plt.imshow(image_array_slice, cmap='gray')  # Use 'cmap' parameter to specify colormap (e.g., 'gray')
+plt.axis('off')  # Turn off axes
+plt.show()
 
 # now comes the neural network
 from model_denoise import DenoiseNet
@@ -46,27 +47,27 @@ from custom_dataset import CustomDataset
 
 train_ds = CustomDataset(PicsBatch)
 
-# # plotting an example
-# x, y = train_ds[10]
-# x_plot = x.numpy()
-# y_plot = y.numpy()
-# z_index = 3
-# Channel_index = 2
-# # x = x[:, :, :, Channel_index]
-# # y = y[:, :, :, Channel_index] now every channel is it's own image
-# x_plot = np.max(x_plot, axis=-1)
-# y_plot = np.max(y_plot, axis=-1)
-# fig, ax = plt.subplots(1, 2, figsize=(6, 3), dpi=150)
-#
-# ax[0].imshow(x_plot, cmap='Greys_r')
-# ax[0].set_title('Target: Clean image of only the spots')
-# ax[1].imshow(y_plot, cmap='Greys_r')
-# ax[1].set_title('Input: Noised original image')
-#
-# # Adjust spacing between subplots for better visualization
-# plt.tight_layout()
-#
-# plt.show()
+# plotting an example
+x, y = train_ds[10]
+x_plot = x.numpy()
+y_plot = y.numpy()
+z_index = 3
+Channel_index = 2
+# x = x[:, :, :, Channel_index]
+# y = y[:, :, :, Channel_index] now every channel is it's own image
+x_plot = np.max(x_plot, axis=-1)
+y_plot = np.max(y_plot, axis=-1)
+fig, ax = plt.subplots(1, 2, figsize=(6, 3), dpi=150)
+
+ax[0].imshow(x_plot, cmap='Greys_r')
+ax[0].set_title('Target: Clean image of only the spots')
+ax[1].imshow(y_plot, cmap='Greys_r')
+ax[1].set_title('Input: Noised original image')
+
+# Adjust spacing between subplots for better visualization
+plt.tight_layout()
+
+plt.show()
 
 from denoise_training import train_valid_loop
 
