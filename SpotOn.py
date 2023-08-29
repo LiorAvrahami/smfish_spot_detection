@@ -55,17 +55,26 @@ def locate_spots(image: npt.NDArray, false_neg_to_false_pos_ratio, b_use_denoisi
 
     # clean image with noise reduction net
     if b_use_denoising:
+        print("cleaning image")
         image = clean_image(image)
+        print("done with cleaning image")
 
+    print("extracting points of interest")
     points_of_interest = list(zip(*np.where(find_points_of_interest(image))))  # type: ignore
     points_of_interest: list[tuple[int, int, int]]  # points_of_interest = list of (x,y,z) points
+    print(f"done extracting points of interest, found {len(points_of_interest)}")
+
+    print(f"classifying point of interest in batches of {NUM_OF_ROI_IN_BATCH}")
     for batch_index in itertools.count():
+        print(f"working on batch number {batch_index}")
         # extract roi's for batch
         batch_points_of_interest = \
             points_of_interest[
                 batch_index * NUM_OF_ROI_IN_BATCH:
                 (batch_index + 1) * NUM_OF_ROI_IN_BATCH
             ]
+        if len(batch_points_of_interest) == 0:
+            break
 
         # prepare a batch of small images
         small_images_arr = []
@@ -97,7 +106,7 @@ def export_spots_to_csv_file(points, file_name):
 
 
 if __name__ == "__main__":
-    image = convert_image_file_to_numpy("images\\tagged_images_validation\\img4\\image.tif")
+    image = convert_image_file_to_numpy("images\\tagged_images_validation\\img6\\image.tif")
     image = normalize_image(image)
-    detected_points = locate_spots(image, 0.0001, 1, b_use_classifier=False)
+    detected_points = locate_spots(image, 1, b_use_classifier=False)
     export_spots_to_csv_file(detected_points, f"Result_{np.random.randint(1000)}.csv")
