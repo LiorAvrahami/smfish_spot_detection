@@ -5,7 +5,7 @@ import scipy.ndimage
 B_USE_GAUSSIAN_LAPLACE = False
 
 
-def find_points_of_interest(image, num_poi_per_channel=500):
+def find_points_of_interest(image, num_poi_per_channel):
     points_of_interest = np.full(image.shape[:-1], False)
     for ch_index in [0]:  # range(image.shape[3]):
         im = image[:, :, :, ch_index]

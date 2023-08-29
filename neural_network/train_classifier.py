@@ -25,6 +25,8 @@ import create_training_data.training_data_generator
 from neural_network.model_classifier import spots_classifier_net
 from sklearn.model_selection import train_test_split
 
+from neural_network.confusion_matrix import get_confusion_matrix
+
 torch.cuda.is_available()
 np.random.seed(0)
 
@@ -50,7 +52,7 @@ class MyDataset(Dataset):
 
 
 def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_interval=1500, epoch_report_interval=100, my_seed=0, add_name_str=''):
-    
+
     # Validation Constants
     val_generator = create_training_data.training_data_generator.ClassifierValidationDataGenerator()
     val_data = val_generator.get_next_batch()
@@ -58,7 +60,7 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
     val_label = val_data[TAG]
     val_ds = MyDataset(val_img, val_label)
     valid_dl = DataLoader(val_ds, batch_size=len(val_label), shuffle=True)
-    
+
     net = spots_classifier_net()
 
     start_time = datetime.datetime.now()
@@ -115,6 +117,9 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         pred = net(xb)  # pass the input through the net to get the prediction
         loss = loss_function(pred, yb)  # use the MSE loss between the prediction and the target
         loss.backward()
+        # get confusion matrix for batch
+        tp, fp, fn, tn = get_confusion_matrix(pred, yb)
+
         optimizer.step()  # optimizer step in the direction of negative gradient
 
         # take the average of the loss over each batch and append it to the list
@@ -140,6 +145,10 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
                 torch.save(net.state_dict(), 'final_saved_classifier_model_' + params_str + '.pt')
             with open(pickle_output_filename, "wb+") as f:
                 pickle.dump({
+                    "true_positive": tp,
+                    "false_positive": fp,
+                    "false_negative": fn,
+                    "true_negative": tn,
                     "train_loss": train_loss,
                     "valid_loss": valid_loss,
                     "epoch": epochs,

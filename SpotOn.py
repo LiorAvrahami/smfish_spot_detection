@@ -32,14 +32,15 @@ def classify_roi(small_image: npt.NDArray):
     return has_point, result_channel
 
 
-def locate_spots(image: npt.NDArray, b_use_denoising=True) -> list[tuple[int, int, int, int]]:
+def locate_spots(image: npt.NDArray, expected_point_density, false_neg_to_false_pos_ratio, b_use_denoising=True,) -> list[tuple[int, int, int, int]]:
     result_detected_points = []
 
     # clean image with noise reduction net
     if b_use_denoising:
         image = clean_image(image)
 
-    points_of_interest = list(zip(*np.where(find_points_of_interest(image))))  # type: ignore
+    num_roi_per_channel = expected_point_density * image.size * 1000  # we want 1000 points per roi.
+    points_of_interest = list(zip(*np.where(find_points_of_interest(image, num_roi_per_channel))))  # type: ignore
     points_of_interest: list[tuple[int, int, int]]  # points_of_interest = list of (x,y,z) points
     for point in points_of_interest:
         small_image = crop(image, point[0], point[1])
@@ -62,5 +63,5 @@ def export_spots_to_csv_file(points, file_name):
 if __name__ == "__main__":
     image = convert_image_file_to_numpy("images\\tagged_images_validation\\img2\\image.tif")
     image = normalize_image(image)
-    detected_points = locate_spots(image)
+    detected_points = locate_spots(image, 0.0001, 1)
     export_spots_to_csv_file(detected_points, f"Result_{np.random.randint(1000)}.csv")
