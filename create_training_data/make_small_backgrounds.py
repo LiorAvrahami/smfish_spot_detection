@@ -6,6 +6,7 @@ import numpy.typing as npt
 from image_manipulation.standardize_image import crop_image, normalize_image
 from Global_Constants import *
 from image_loader.Image2numpy import convert_image_file_to_numpy
+from Global_Constants import FILE_EXTENTIONS_TO_IGNORE
 
 
 class SmallBackgroundGenerator:
@@ -16,7 +17,7 @@ class SmallBackgroundGenerator:
     @staticmethod
     def make_default():
         bg_dir_path = "images\\backgrounds"
-        big_images_paths = [os.path.join(bg_dir_path, a) for a in os.listdir(bg_dir_path)]
+        big_images_paths = [os.path.join(bg_dir_path, a) for a in os.listdir(bg_dir_path) if os.path.splitext(a)[-1] not in FILE_EXTENTIONS_TO_IGNORE]
         big_images = [convert_image_file_to_numpy(path) for path in big_images_paths]
         relevant_channels_array = [(0, 1, 2) for i in range(len(big_images))]
         relevant_z_min_array = [0 for i in range(len(big_images))]

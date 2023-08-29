@@ -8,3 +8,5 @@ DEFAULT_CHANNELS = (1, 2, 3)
 DEFAULT_ZMIN = 3
 # conversion between micro meters to pixels
 CONVERSION_FACTOR_UM_TO_PIXELS = 0.11
+# files that only make life harder
+FILE_EXTENTIONS_TO_IGNORE = [".db"]
