@@ -6,10 +6,9 @@ from collections import OrderedDict
 
 class DenoiseNet(nn.Module):
 
-    # we put only 1 channel in the network at a time 
+    # we put only 1 channel in the network at a time
     def __init__(self):
         super().__init__()
-        print("2")
         num_of_features = 8  # for now
 
         self.model = nn.Sequential(OrderedDict([
@@ -28,7 +27,7 @@ class DenoiseNet(nn.Module):
             ('conv4-1', nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
             ('batch_norm_4', nn.BatchNorm3d(num_of_features)),
             ('relu4', nn.ReLU()),
-            
+
             ('conv5-1',
              nn.Conv3d(in_channels=num_of_features, out_channels=num_of_features, kernel_size=3, padding="same")),
             ('batch_norm_5', nn.BatchNorm3d(num_of_features)),

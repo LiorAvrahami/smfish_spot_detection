@@ -1,4 +1,5 @@
 import csv
+import itertools
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
@@ -18,6 +19,8 @@ image_cleaner_network.load_state_dict(torch.load('denoiseNet.pt', map_location=t
 
 classifier_network = ClassifierNet()
 classifier_network.load_state_dict(torch.load("classifyNet.pt", map_location=torch.device('cpu')))
+
+NUM_OF_ROI_IN_BATCH = 300
 
 
 def clean_image(image: npt.NDArray) -> npt.NDArray:
@@ -40,38 +43,48 @@ def classify_roi_list(small_images_list: npt.NDArray, cutoff=0.5):
     images = torch.tensor(small_images_list)  # type: ignore
     images = images.permute(0, 4, 3, 2, 1)  # get ch,z,x,y # type: ignore
     pred = classifier_network(images.float()).detach()
+    pred = torch.sigmoid(pred)
     has_point = pred.numpy() > cutoff
     result_channel = np.zeros(has_point.shape)
     return has_point, result_channel
 
 
-def locate_spots(image: npt.NDArray, expected_point_density, false_neg_to_false_pos_ratio, b_use_denoising=True, b_use_classifier=True) -> list[tuple[int, int, int, int]]:
+def locate_spots(image: npt.NDArray, false_neg_to_false_pos_ratio, b_use_denoising=True, b_use_classifier=True) -> list[tuple[int, int, int, int]]:
+    image = image[..., :3]
     result_detected_points = []
 
     # clean image with noise reduction net
     if b_use_denoising:
         image = clean_image(image)
 
-    num_roi_per_channel = int(expected_point_density * image.size * 1000)  # we want 1000 points per roi.
-    points_of_interest = list(zip(*np.where(find_points_of_interest(image, num_roi_per_channel))))  # type: ignore
+    points_of_interest = list(zip(*np.where(find_points_of_interest(image))))  # type: ignore
     points_of_interest: list[tuple[int, int, int]]  # points_of_interest = list of (x,y,z) points
-    small_images_arr = []
-    for point in points_of_interest:
-        small_image = crop(image, point[0], point[1])
-        if not is_valid_size(small_image):
-            continue
-        small_images_arr.append(small_image)
-    small_images_arr = np.array(small_images_arr)
+    for batch_index in itertools.count():
+        # extract roi's for batch
+        batch_points_of_interest = \
+            points_of_interest[
+                batch_index * NUM_OF_ROI_IN_BATCH:
+                (batch_index + 1) * NUM_OF_ROI_IN_BATCH
+            ]
 
-    if b_use_classifier:
-        has_point_list, result_channels_list = classify_roi_list(small_images_arr)
-    else:
-        has_point_list, result_channels_list = classify_roi_list_Moc(small_images_arr)
+        # prepare a batch of small images
+        small_images_arr = []
+        for point in batch_points_of_interest:
+            small_image = crop(image, point[0], point[1])
+            if not is_valid_size(small_image):
+                continue
+            small_images_arr.append(small_image)
+        small_images_arr = np.array(small_images_arr)
 
-    for point_index in range(len(has_point_list)):
-        if has_point_list[point_index]:
-            point = points_of_interest[point_index]
-            result_detected_points.append((point[1], point[0], point[2], result_channels_list[point_index]))
+        if b_use_classifier:
+            has_point_list, result_channels_list = classify_roi_list(small_images_arr)
+        else:
+            has_point_list, result_channels_list = classify_roi_list_Moc(small_images_arr)
+
+        for point_index in range(len(has_point_list)):
+            if has_point_list[point_index]:
+                point = batch_points_of_interest[point_index]
+                result_detected_points.append((point[1], point[0], point[2], result_channels_list[point_index]))
 
     return result_detected_points
 
@@ -84,7 +97,7 @@ def export_spots_to_csv_file(points, file_name):
 
 
 if __name__ == "__main__":
-    image = convert_image_file_to_numpy("images\\tagged_images_validation\\img2\\image.tif")
+    image = convert_image_file_to_numpy("images\\tagged_images_validation\\img4\\image.tif")
     image = normalize_image(image)
-    detected_points = locate_spots(image, 0.0001, 1)
+    detected_points = locate_spots(image, 0.0001, 1, b_use_classifier=False)
     export_spots_to_csv_file(detected_points, f"Result_{np.random.randint(1000)}.csv")

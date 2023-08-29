@@ -20,6 +20,6 @@ for (i = 0; i < rows.length; i++) {
     
     // Create a point selection at the specified coordinates
     makePoint(x, y,"small yellow hybrid");
-	Roi.setPosition(z, ch, 1);
+	Roi.setPosition(ch, z, 1);
 	roiManager("Add");
 }
