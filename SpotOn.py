@@ -86,5 +86,5 @@ def export_spots_to_csv_file(points, file_name):
 if __name__ == "__main__":
     image = convert_image_file_to_numpy("images\\tagged_images_validation\\img2\\image.tif")
     image = normalize_image(image)
-    detected_points = locate_spots(image, 1000, 1)
+    detected_points = locate_spots(image, 0.0001, 1)
     export_spots_to_csv_file(detected_points, f"Result_{np.random.randint(1000)}.csv")
