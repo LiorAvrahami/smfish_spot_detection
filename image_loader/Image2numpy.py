@@ -24,6 +24,8 @@ def convert_image_file_to_numpy(image_path):
         im = nd2.imread(image_path).astype(float)
     elif os.path.splitext(image_path)[-1] == ".tif":
         im = io.imread(image_path).astype(float)
+    else:
+        raise (Exception(f"{image_path} not found"))
 
     # identify what each axis means, we assume that in the remaining two x-axis comes before the y axis.
     axes_indexes_sorted_by_size = np.argsort(im.shape)
