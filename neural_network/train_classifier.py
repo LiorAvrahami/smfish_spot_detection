@@ -32,6 +32,7 @@ np.random.seed(0)
 loss_function = nn.BCEWithLogitsLoss()
 TAG = 1
 IMG = 0
+BATCH_SIZE_MUL_FACTOR = 20
 
 
 class MyDataset(Dataset):
@@ -102,7 +103,7 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         train_img, train_label = imgs[IMG], imgs[TAG]
 
         train_ds = MyDataset(train_img, train_label)
-        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+        train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE_MUL_FACTOR*batch_size, shuffle=True)
 
         # for epoch in tqdm(range(Nepochs)):# loop over Nepochs
         epochs.append(epoch)
@@ -178,9 +179,10 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         valid_fn_list.append(fn)
 
         # Model checkpointing
-        if np.mod(epoch, save_model_interval) == 0 and epoch > 0:
+        if epoch > 0:
             if valid_loss[-1] < min(valid_loss[:-1]):
-                torch.save(net.state_dict(), 'final_saved_classifier_model_' + params_str + '.pt')
+                torch.save(net.state_dict(), 'best_saved_classifier_model_' + params_str + '.pt')
+        if np.mod(epoch, save_model_interval) == 0 and epoch > 0:
             torch.save(net.state_dict(), 'routine_saved_classifier_model_' + params_str + '.pt')
             with open(pickle_output_filename, "wb+") as f:
                 pickle.dump({
