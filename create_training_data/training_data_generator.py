@@ -105,7 +105,9 @@ class ClassifierTrainingDataGenerator():
             for dot_location in dots_locations:
                 if num_dots >= self.batch_size / 2:
                     break
-                b_success = append(crop(image, int(dot_location[0]), int(dot_location[1])), dot_location[-1])
+
+                b_success = append(crop(image, int(dot_location[0])+np.random.randint(-3, 4),
+                int(dot_location[1]))+np.random.randint(-3, 4), dot_location[-1])
                 num_dots += 1 if b_success else 0
             while num_not_dots < num_dots:
                 x = np.random.uniform(0, image.shape[0])
