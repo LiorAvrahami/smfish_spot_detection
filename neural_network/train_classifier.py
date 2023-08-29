@@ -79,6 +79,10 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
     train_loss = []
     valid_loss = []
     epochs = []
+    tp_list = []
+    fp_list = []
+    tn_list = []
+    fn_list = []
 
     # Optimizer
     optimizer = optim.Adam(net.parameters(), lr=learning_rate)  # use Adam
@@ -117,10 +121,21 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         pred = net(xb)  # pass the input through the net to get the prediction
         loss = loss_function(pred, yb)  # use the MSE loss between the prediction and the target
         loss.backward()
-        # get confusion matrix for batch
-        tp, fp, fn, tn = get_confusion_matrix(pred, yb)
 
         optimizer.step()  # optimizer step in the direction of negative gradient
+
+        pred = pred.cpu()
+        yb = yb.cpu()
+
+        pred = pred.detach().numpy()
+        yb = yb.detach().numpy()
+
+        # get confusion matrix for batch
+        tp, fp, fn, tn = get_confusion_matrix(pred, yb)
+        tp_list.append(tp)
+        fp_list.append(fp)
+        tn_list.append(tn)
+        fn_list.append(fn)
 
         # take the average of the loss over each batch and append it to the list
         train_loss.append(loss.item())
@@ -145,10 +160,10 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
                 torch.save(net.state_dict(), 'final_saved_classifier_model_' + params_str + '.pt')
             with open(pickle_output_filename, "wb+") as f:
                 pickle.dump({
-                    "true_positive": tp,
-                    "false_positive": fp,
-                    "false_negative": fn,
-                    "true_negative": tn,
+                    "true_positive": tp_list,
+                    "false_positive": fp_list,
+                    "false_negative": fn_list,
+                    "true_negative": tn_list,
                     "train_loss": train_loss,
                     "valid_loss": valid_loss,
                     "epoch": epochs,
