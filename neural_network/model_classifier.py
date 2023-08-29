@@ -1,8 +1,8 @@
-
 import torch
 import numpy as np
 import torch.nn as nn
 from collections import OrderedDict
+
 
 class spots_classifier_net(nn.Module):
 
@@ -10,49 +10,42 @@ class spots_classifier_net(nn.Module):
         super().__init__()
         channel_num = 10
         output_channels = 1
-        ### Add your network layers here...
-        ### You should use nn.Conv3d(), nn.BatchNorm2d(), and nn.ReLU()
-        ### They can be added as seperate layers and cascaded in the forward
-        ### or you can combine them using the nn.Sequential() class and an OrderedDict (very clean!)
 
         self.model = nn.Sequential(OrderedDict([
             ('conv1-1', nn.Conv3d(in_channels=3, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('relu1-1', nn.ReLU()),
-            ('conv1-2', nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('relu1-2', nn.ReLU()),
-            ('drop1',nn.Dropout(p=0.15)),
-
-            ('conv2-1', nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('relu2-1', nn.ReLU()),
-            ('conv2-2', nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('relu2-2', nn.ReLU()),
-            ('drop2',nn.Dropout(p=0.15)),
-
-            ('max_pool1', nn.MaxPool3d(2,2)),
             ('batch_norm_1', nn.BatchNorm3d(channel_num)),
+            ('relu1', nn.ReLU()),
 
-            ('conv3-1', nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('relu3-1', nn.ReLU()),
-            ('conv3-2', nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('relu3-2', nn.ReLU()),
-            ('drop3',nn.Dropout(p=0.15)),
+            ('conv2-1',
+             nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
+            ('batch_norm_2', nn.BatchNorm3d(channel_num)),
+            ('relu2', nn.ReLU()),
 
-            ('flatten',nn.Flatten()),
+            ('conv3-1',
+             nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
+            ('batch_norm_3', nn.BatchNorm3d(channel_num)),
+            ('relu3', nn.ReLU()),
 
-            ('fcn1', nn.Linear(1250,100)),
-            ('relu4-1', nn.ReLU()),
-            ('fcn2', nn.Linear(100,100)),
-            ('relu4-2', nn.ReLU()),
-            ('fcn3', nn.Linear(100,output_channels)),
-            ('sigmoid', nn.Sigmoid()),
-            ('flatten2',nn.Flatten(0)),
+            ('conv4-1',
+             nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
+            ('batch_norm_4', nn.BatchNorm3d(channel_num)),
+            ('relu4', nn.ReLU()),
 
-        ]))
-        
-        
-    def forward(self,x):
-        
-        ### Now pass the input image x through the network layers
-        ### Then add the result to the input image (to offset the noise
+            ('conv5-1',
+             nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
+            ('batch_norm_5', nn.BatchNorm3d(channel_num)),
+            ('relu5', nn.ReLU()),
+
+            ('conv_out', nn.Conv3d(in_channels=channel_num, out_channels=1, kernel_size=3, padding="same")),
+
+            ('flatten', nn.Flatten()),
+            ('fcn1', nn.Linear(1210, 500)),
+            ('relu6', nn.ReLU()),
+            ('fcn2', nn.Linear(500, 100)),
+            ('relu7', nn.ReLU()),
+            ('fcn3', nn.Linear(100, output_channels)), ('flatten2', nn.Flatten(0))]))
+
+
+    def forward(self, x):
         rslt = self.model(x)
         return rslt
