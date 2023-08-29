@@ -39,7 +39,7 @@ class spots_classifier_net(nn.Module):
             ('conv_out', nn.Conv3d(in_channels=channel_num, out_channels=1, kernel_size=3, padding="same")),
 
             ('flatten', nn.Flatten()),
-            ('fcn1', nn.Linear(1250, 500)),
+            ('fcn1', nn.Linear(1210, 500)),
             ('relu6', nn.ReLU()),
             ('fcn2', nn.Linear(500, 100)),
             ('relu7', nn.ReLU()),
