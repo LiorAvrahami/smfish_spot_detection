@@ -23,7 +23,6 @@ except:
 
 import create_training_data.training_data_generator
 from neural_network.model_classifier import spots_classifier_net
-from sklearn.model_selection import train_test_split
 
 from neural_network.confusion_matrix import get_confusion_matrix
 
