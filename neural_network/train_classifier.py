@@ -66,7 +66,6 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
     start_time = datetime.datetime.now()
     np.random.seed(my_seed)
     torch.manual_seed(my_seed)
-    params_str = 'lr-' + str(learning_rate) + '_seed-' + str(my_seed) + add_name_str
 
     imgs_generator = create_training_data.training_data_generator.ClassifierTrainingDataGenerator.make_default_training_data_generator(
         batch_size=batch_size)
@@ -95,13 +94,9 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
 
     net.to(device)  # put it on the device
 
+    params_str = 'lr-' + str(learning_rate) + '_seed-' + str(my_seed) + add_name_str
     pickle_output_filename = 'run_statistics_spot_detection_' + params_str + '.pickle'
     print("Pickle file: " + pickle_output_filename)
-    # try:
-    #     os.remove(pickle_output_filename)
-    #     print(f"File '{pickle_output_filename}' deleted successfully.")
-    # except FileNotFoundError:
-    #     print(f"File '{pickle_output_filename}' not found.")
 
     for epoch in range(Nepochs):  # loop over Nepochs
         # for epoch in tqdm(range(Nepochs)):# loop over Nepochs

@@ -6,6 +6,8 @@ import tqdm  # insted of tqdm notebook
 import torch.optim as optim
 from create_training_data.training_data_generator import NoiseReductionTrainingDataGenerator
 from noise_reduction.custom_dataset import CustomDataset
+import pickle
+import datetime
 
 
 def create_fresh_batch(num_of_elements=128):
@@ -16,11 +18,19 @@ def create_fresh_batch(num_of_elements=128):
     return train_dl
 
 
-def train_valid_loop(net, num_of_batches=1000, Nepochs=40, learning_rate=0.001):
+def train_valid_loop(net, num_of_batches=1000, Nepochs=40, learning_rate=0.001, save_model_interval=1500, my_seed=0, add_name_str=''):
+    # track runtime
+    start_time = datetime.datetime.now()
+
+    # set seed for reproducibility
+    np.random.seed(my_seed)
+    torch.manual_seed(my_seed)
+
     train_loss = []
     valid_loss = []
+    epochs = []
 
-    ### Optimizer
+    # Optimizer
     optimizer = optim.Adam(net.parameters(), lr=learning_rate)  # use Adam
 
     ### Check for GPU
@@ -29,9 +39,12 @@ def train_valid_loop(net, num_of_batches=1000, Nepochs=40, learning_rate=0.001):
         print('Found GPU!')
         device = torch.device("cuda:0")
 
-    net.to(device) # put it on the device
-
     net.to(device)  # put it on the device
+
+    # set up names for checkpointing
+    params_str = 'lr-' + str(learning_rate) + '_seed-' + str(my_seed) + add_name_str
+    pickle_output_filename = 'run_statistics_spot_detection_' + params_str + '.pickle'
+    print("Pickle file: " + pickle_output_filename)
 
     for epoch in tqdm.tqdm(range(Nepochs)):  # loop over Nepochs
 
@@ -49,6 +62,7 @@ def train_valid_loop(net, num_of_batches=1000, Nepochs=40, learning_rate=0.001):
                 optimizer.zero_grad()  # ...please make sure the gradients are zeroed-out each time!
                 pred = net(xb)  # pass the input through the net to get the prediction
                 loss = func.mse_loss(pred, yb)  # use the MSE loss between the prediction and the target
+                # loss = func.l1_loss(pred, yb)
                 # --> <-- ADD LINE TO DO BACKPROPAGATION HERE ::: DONE! next line
                 loss.backward()
                 train_loss_epoch.append(loss.item())
@@ -74,9 +88,18 @@ def train_valid_loop(net, num_of_batches=1000, Nepochs=40, learning_rate=0.001):
         valid_loss.append(np.mean(valid_loss_epoch))
 
         ### Model checkpointing
-        if epoch > 0:
+        if np.mod(epoch, save_model_interval) == 0 and epoch > 0:
             if valid_loss[-1] < min(valid_loss[:-1]):
-                torch.save(net.state_dict(), 'saved_model.pt')
+                torch.save(net.state_dict(), 'final_saved_classifier_model_' + params_str + '.pt')
+            with open(pickle_output_filename, "wb+") as f:
+                pickle.dump({
+                    "train_loss": train_loss,
+                    "valid_loss": valid_loss,
+                    "epoch": epochs,
+                    "time": datetime.datetime.now() - start_time,
+                    "learning_rate": learning_rate,
+                    "seed": my_seed,
+                }, f)
 
         print('Epoch: ', epoch, ' Train loss: ', train_loss[-1], ' Valid loss: ', valid_loss[-1])
 
