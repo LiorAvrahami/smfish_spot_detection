@@ -109,41 +109,42 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         # Training
         net.train()
 
-        xb, yb = next(iter(train_dl))
+        for xb,yb in train_dl:
+        # xb, yb = next(iter(train_dl))
         # select ony the first value of yb (dot/not dot), the rest of the values represent presence of spots in the channels
-        yb = torch.tensor([lst[0] for lst in yb])
+            yb = torch.tensor([lst[0] for lst in yb])
 
-        xb = xb.to(device)
-        yb = yb.to(device)
+            xb = xb.to(device)
+            yb = yb.to(device)
 
-        optimizer.zero_grad()  # make sure the gradients are zeroed-out each time!
+            optimizer.zero_grad()  # make sure the gradients are zeroed-out each time!
 
-        pred = net(xb)  # pass the input through the net to get the prediction
-        loss = loss_function(pred, yb)  # use the MSE loss between the prediction and the target
-        
-        loss.backward()
+            pred = net(xb)  # pass the input through the net to get the prediction
+            loss = loss_function(pred, yb)  # use the MSE loss between the prediction and the target
+            
+            loss.backward()
 
-        optimizer.step()  # optimizer step in the direction of negative gradient
+            optimizer.step()  # optimizer step in the direction of negative gradient
 
-        pred_prob = torch.sigmoid(pred)
+            pred_prob = torch.sigmoid(pred)
 
-        pred = pred.cpu()
-        yb = yb.cpu()
-        pred_prob = pred_prob.cpu()
+            pred = pred.cpu()
+            yb = yb.cpu()
+            pred_prob = pred_prob.cpu()
 
-        pred = pred.detach().numpy()
-        yb = yb.detach().numpy()
-        pred_prob = pred_prob.detach().numpy()
+            pred = pred.detach().numpy()
+            yb = yb.detach().numpy()
+            pred_prob = pred_prob.detach().numpy()
 
-        # get confusion matrix for batch
-        tp, fp, fn, tn = get_confusion_matrix(pred_prob, yb)
-        train_tp_list.append(tp)
-        train_fp_list.append(fp)
-        train_tn_list.append(tn)
-        train_fn_list.append(fn)
+            # get confusion matrix for batch
+            tp, fp, fn, tn = get_confusion_matrix(pred_prob, yb)
+            train_tp_list.append(tp)
+            train_fp_list.append(fp)
+            train_tn_list.append(tn)
+            train_fn_list.append(fn)
 
-        # take the average of the loss over each batch and append it to the list
-        train_loss.append(loss.item())
+            # take the average of the loss over each batch and append it to the list
+            train_loss.append(loss.item())
 
         # Validation
         net.eval()
