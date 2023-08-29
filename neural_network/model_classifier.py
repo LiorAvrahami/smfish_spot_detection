@@ -12,7 +12,7 @@ class spots_classifier_net(nn.Module):
         output_channels = 1
 
         self.model = nn.Sequential(OrderedDict([
-            ('conv1-1', nn.Conv3d(in_channels=1, out_channels=channel_num, kernel_size=3, padding="same")),
+            ('conv1-1', nn.Conv3d(in_channels=3, out_channels=channel_num, kernel_size=3, padding="same")),
             ('batch_norm_1', nn.BatchNorm3d(channel_num)),
             ('relu1', nn.ReLU()),
 
@@ -47,7 +47,5 @@ class spots_classifier_net(nn.Module):
 
 
     def forward(self, x):
-        ### Now pass the input image x through the network layers
-        ### Then add the result to the input image (to offset the noise
         rslt = self.model(x)
         return rslt
