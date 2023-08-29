@@ -127,7 +127,7 @@ class ClassifierCheckerDataGenerator(ClassifierTrainingDataGenerator):
         self.images_tags = []
         for name in image_folder_names:
             image, points_array = load_tagged_image(os.path.join(folder_path, name))
-            self.images_tags.append((image, points_array))
+            self.images_tags.append((image.transpose(1, 0, 2, 3), points_array))
 
     def get_image_and_points(self):
         if self.image_index >= len(self.images_tags):
