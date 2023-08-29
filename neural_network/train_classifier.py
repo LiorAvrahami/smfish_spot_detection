@@ -77,10 +77,14 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
     train_loss = []
     valid_loss = []
     epochs = []
-    tp_list = []
-    fp_list = []
-    tn_list = []
-    fn_list = []
+    train_tp_list = []
+    train_fp_list = []
+    train_tn_list = []
+    train_fn_list = []
+    valid_tp_list = []
+    valid_fp_list = []
+    valid_tn_list = []
+    valid_fn_list = []
 
     # Optimizer
     optimizer = optim.Adam(net.parameters(), lr=learning_rate)  # use Adam
@@ -126,10 +130,10 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
 
         # get confusion matrix for batch
         tp, fp, fn, tn = get_confusion_matrix(pred, yb)
-        tp_list.append(tp)
-        fp_list.append(fp)
-        tn_list.append(tn)
-        fn_list.append(fn)
+        train_tp_list.append(tp)
+        train_fp_list.append(fp)
+        train_tn_list.append(tn)
+        train_fn_list.append(fn)
 
         # take the average of the loss over each batch and append it to the list
         train_loss.append(loss.item())
@@ -148,16 +152,35 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         loss = loss_function(pred, yb)  # same as in training loop
         valid_loss.append(loss.item())
 
+        # move to cpu
+        pred = pred.cpu()
+        yb = yb.cpu()
+
+        pred = pred.detach().numpy()
+        yb = yb.detach().numpy()
+
+        # tp tn fp fn for validation
+        tp, fp, fn, tn = get_confusion_matrix(pred, yb)
+        valid_tp_list.append(tp)
+        valid_fp_list.append(fp)
+        valid_tn_list.append(tn)
+        valid_fn_list.append(fn)
+
         # Model checkpointing
         if np.mod(epoch, save_model_interval) == 0 and epoch > 0:
             if valid_loss[-1] < min(valid_loss[:-1]):
                 torch.save(net.state_dict(), 'final_saved_classifier_model_' + params_str + '.pt')
+            torch.save(net.state_dict(), 'routine_saved_classifier_model_' + params_str + '.pt')
             with open(pickle_output_filename, "wb+") as f:
                 pickle.dump({
-                    "true_positive": tp_list,
-                    "false_positive": fp_list,
-                    "false_negative": fn_list,
-                    "true_negative": tn_list,
+                    "valid_true_positive": valid_tp_list,
+                    "valid_false_positive": valid_fp_list,
+                    "valid_false_negative": valid_fn_list,
+                    "valid_true_negative": valid_tn_list,
+                    "train_true_positive": train_tp_list,
+                    "train_false_positive": train_fp_list,
+                    "train_false_negative": train_fn_list,
+                    "train_true_negative": train_tn_list,
                     "train_loss": train_loss,
                     "valid_loss": valid_loss,
                     "epoch": epochs,
