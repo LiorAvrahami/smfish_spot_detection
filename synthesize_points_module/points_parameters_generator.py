@@ -26,6 +26,6 @@ class MokPointsParametersGenerator(PointsParametersGenerator):
             "radius_2_min_max": (2, 1.7),
             "radius_3_min_max": (1.8, 1.5),
             "intensity_min_max": (min_intensity, max_intensity),
-            "decay_function": exponential_decay_random,
+            "decay_function": exponential_decay,
             "z_metric_factor": 1.4,
         }
