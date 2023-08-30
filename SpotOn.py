@@ -99,6 +99,7 @@ def locate_spots(image: npt.NDArray, false_neg_to_false_pos_ratio, b_use_denoisi
 
 
 def export_spots_to_csv_file(points, file_name):
+    print(f"saving to {file_name}")
     with open(file_name, "w+") as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=',', lineterminator="\n")
         for point in points:
@@ -108,5 +109,5 @@ def export_spots_to_csv_file(points, file_name):
 if __name__ == "__main__":
     image = convert_image_file_to_numpy("images\\tagged_images_validation\\img6\\image.tif")
     image = normalize_image(image)
-    detected_points = locate_spots(image, 1, b_use_classifier=False)
+    detected_points = locate_spots(image, 1, b_use_classifier=True)
     export_spots_to_csv_file(detected_points, f"Result_{np.random.randint(1000)}.csv")
