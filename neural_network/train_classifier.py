@@ -32,7 +32,7 @@ np.random.seed(0)
 loss_function = nn.BCEWithLogitsLoss()
 TAG = 1
 IMG = 0
-BATCH_SIZE_MUL_FACTOR = 20
+BATCH_SIZE_MUL_FACTOR = 10
 
 
 class MyDataset(Dataset):
@@ -51,7 +51,7 @@ class MyDataset(Dataset):
         return img, label
 
 
-def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_interval=1500, epoch_report_interval=100, my_seed=0, add_name_str=''):
+def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_interval=1500, epoch_report_interval=3, my_seed=0, add_name_str=''):
 
     # Validation Constants
     val_generator = create_training_data.training_data_generator.ClassifierValidationDataGenerator()
@@ -69,7 +69,6 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
 
     imgs_generator = create_training_data.training_data_generator.ClassifierTrainingDataGenerator.make_default_training_data_generator(
         batch_size=batch_size)
-    
 
     train_loss = []
     valid_loss = []
@@ -103,16 +102,16 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
         train_img, train_label = imgs[IMG], imgs[TAG]
 
         train_ds = MyDataset(train_img, train_label)
-        train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE_MUL_FACTOR*batch_size, shuffle=True)
+        train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE_MUL_FACTOR * batch_size, shuffle=True)
 
         # for epoch in tqdm(range(Nepochs)):# loop over Nepochs
         epochs.append(epoch)
         # Training
         net.train()
 
-        for xb,yb in train_dl:
-        # xb, yb = next(iter(train_dl))
-        # select ony the first value of yb (dot/not dot), the rest of the values represent presence of spots in the channels
+        for xb, yb in train_dl:
+            # xb, yb = next(iter(train_dl))
+            # select ony the first value of yb (dot/not dot), the rest of the values represent presence of spots in the channels
             yb = torch.tensor([lst[0] for lst in yb])
 
             xb = xb.to(device)
@@ -122,7 +121,7 @@ def train_valid_loop(Nepochs, learning_rate=0.001, batch_size=100, save_model_in
 
             pred = net(xb)  # pass the input through the net to get the prediction
             loss = loss_function(pred, yb)  # use the MSE loss between the prediction and the target
-            
+
             loss.backward()
 
             optimizer.step()  # optimizer step in the direction of negative gradient
