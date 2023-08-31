@@ -1,0 +1,11 @@
+End To End:
+- find ROI's in baches, to deal with memory issues (1)
+
+Architecture:
+COMPLETE - give classifier ROI as image and x,y,z,ch coordinate (2)
+- implement classifier with ROI coordinate input
+
+Training:
+- train classifier on actual ROI's, not random points (3)
+
+order of implementation (2),(3),(1)
