@@ -3,49 +3,77 @@ import numpy as np
 import torch.nn as nn
 from collections import OrderedDict
 
+from image_manipulation.crop_image_for_classifier import small_image_shape
+
 
 class spots_classifier_net(nn.Module):
 
-    def __init__(self):
+    def __init__(self, num_input_channels):
         super().__init__()
-        channel_num = 10
+        intermediate_num_channels = 5 * num_input_channels
         output_channels = 1
 
-        self.model = nn.Sequential(OrderedDict([
-            ('conv1-1', nn.Conv3d(in_channels=3, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('batch_norm_1', nn.BatchNorm3d(channel_num)),
-            ('relu1', nn.ReLU()),
+        image_size_after_conv_layers = (small_image_shape[0] - 6) * \
+            (small_image_shape[1] - 6) * (small_image_shape[2] - 6)
+        arbitrator_layer_size = intermediate_num_channels * image_size_after_conv_layers
 
-            ('conv2-1',
-             nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('batch_norm_2', nn.BatchNorm3d(channel_num)),
-            ('relu2', nn.ReLU()),
+        intermediate_linear_size = arbitrator_layer_size // 3
 
-            ('conv3-1',
-             nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('batch_norm_3', nn.BatchNorm3d(channel_num)),
-            ('relu3', nn.ReLU()),
+        self.cnn_layers = nn.Sequential(
+            nn.Conv3d(in_channels=3, out_channels=intermediate_num_channels, kernel_size=4, padding="same"),
+            nn.BatchNorm3d(intermediate_num_channels),
+            nn.ReLU(),
 
-            ('conv4-1',
-             nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('batch_norm_4', nn.BatchNorm3d(channel_num)),
-            ('relu4', nn.ReLU()),
-
-            ('conv5-1',
-             nn.Conv3d(in_channels=channel_num, out_channels=channel_num, kernel_size=3, padding="same")),
-            ('batch_norm_5', nn.BatchNorm3d(channel_num)),
-            ('relu5', nn.ReLU()),
-
-            ('conv_out', nn.Conv3d(in_channels=channel_num, out_channels=1, kernel_size=3, padding="same")),
-
-            ('flatten', nn.Flatten()),
-            ('fcn1', nn.Linear(1210, 500)),
-            ('relu6', nn.ReLU()),
-            ('fcn2', nn.Linear(500, 100)),
-            ('relu7', nn.ReLU()),
-            ('fcn3', nn.Linear(100, output_channels)), ('flatten2', nn.Flatten(0))]))
+            nn.Conv3d(in_channels=intermediate_num_channels,
+                      out_channels=intermediate_num_channels, kernel_size=3, padding="same"),
+            nn.BatchNorm3d(intermediate_num_channels),
+            nn.ReLU(),
 
 
-    def forward(self, x):
-        rslt = self.model(x)
+            nn.Conv3d(in_channels=intermediate_num_channels,
+                      out_channels=intermediate_num_channels, kernel_size=3, padding="same"),
+            nn.BatchNorm3d(intermediate_num_channels),
+            nn.ReLU(),
+
+            # start decreasing image size with padding="valid" in order to increase information density before linear layers
+            nn.Conv3d(in_channels=intermediate_num_channels,
+                      out_channels=intermediate_num_channels, kernel_size=3, padding="valid"),
+            nn.BatchNorm3d(intermediate_num_channels),
+            nn.ReLU(),
+
+            nn.Conv3d(in_channels=intermediate_num_channels,
+                      out_channels=intermediate_num_channels, kernel_size=3, padding="valid"),
+            nn.BatchNorm3d(intermediate_num_channels),
+            nn.ReLU(),
+
+            nn.Conv3d(in_channels=intermediate_num_channels,
+                      out_channels=intermediate_num_channels, kernel_size=3, padding="valid"),
+            nn.BatchNorm3d(intermediate_num_channels),
+            nn.ReLU(),
+
+            # flatten out the image in order for it to enter the linear layers
+            nn.Flatten(),
+        )
+
+        # arbitrator layer, this layer is the conditional CNN. here we use a different layer, with different weights depending on
+        # the value of the roi channel.
+        self.arbitrator_layers = nn.ModuleList(
+            [nn.Linear(arbitrator_layer_size, arbitrator_layer_size) for i in range(num_input_channels)]
+        )
+
+        # finally we pass through several linear layers in order to reach a binary classification
+        self.linear_layers = nn.Sequential(
+            nn.Linear(arbitrator_layer_size, intermediate_linear_size),
+            nn.ReLU(),
+            nn.Linear(arbitrator_layer_size, intermediate_linear_size),
+            nn.ReLU(),
+            nn.Linear(intermediate_linear_size, 100),
+            nn.ReLU(),
+            nn.Linear(100, output_channels),
+            nn.Flatten(0))
+
+    def forward(self, image, channel):
+        after_cnn = self.cnn_layers(image)
+        after_arbitrator = self.arbitrator_layers[channel](after_cnn)
+        rslt = self.linear_layers(after_arbitrator)
         return rslt
