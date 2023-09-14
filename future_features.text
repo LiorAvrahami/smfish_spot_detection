@@ -1,0 +1,38 @@
+End To End:
+- find ROI's in segments, to deal with memory issues (1)
+
+Deal With Class Imbalance:
+- consider other loss functions (9)
+
+Dots Morpholagy:
+- we assume a specific microscope resolution and some dot size distribution. (8)
+
+ChannelLimitations:
+- Alternative solutions: 
+    - train five different networks for different static number of channels (4)
+    - dynamic ammount of channels? (5)
+    - automatic training tools for a specific number of channels with some spesific microscope: (6)
+        - how it works: the user takes photos of around 3 backgrounds (7)
+        - also the user can tag some points for his specific library in order to allow us to make synthetic points. (10)
+
+Z stack limitation:
+COMPLETE - crop around z (5~7 stacks) (13)
+
+Architecture:
+COMPLETE - give classifier ROI as image and ch coordinate (2)
+COMPLETE - implement classifier with ROI coordinate input (11) {conditional CNN (cCNN) spli the first linear layer to three}
+- comparison with synthetic tag for loss function: an roi is considered to contain a point if there exists a synthetic point with a distance of 2.5 from the roi's center. (12)
+
+Training:
+- train classifier on actual ROI's, not random points (3)
+
+Benchmarks:
+- RSFISH, bigfish, deepBlink, StarFish, airLocalize, fishquant
+
+MoreData:
+- Tal will talk to Liat regarding data from different microscope
+
+QA:
+- compare SpotOn results with two independent human observers using cohen's kappa statistic (make sure to only compare z stacks in the middle.) 
+
+order of implementation (3),(12),(9)
