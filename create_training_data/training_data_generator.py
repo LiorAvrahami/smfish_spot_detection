@@ -50,15 +50,22 @@ class ClassifierTrainingDataGenerator():
     batch_size: int
     backgrounds_generator: SmallBackgroundGenerator
     points_parameters_generator: PointsParametersGenerator
+    point_location_noise: int
 
     @staticmethod
-    def make_default_training_data_generator(batch_size):
+    def make_default_training_data_generator(batch_size, point_location_noise=None):
         points_parameters_generator = PointsParametersGenerator.make_default()
         backgrounds_generator = SmallBackgroundGenerator.make_default()
-        return ClassifierTrainingDataGenerator(batch_size, points_parameters_generator, backgrounds_generator)
+        return ClassifierTrainingDataGenerator(batch_size, points_parameters_generator, backgrounds_generator, point_location_noise)
 
-    def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator):
+    def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator, point_location_noise=None):
+
+        # default point_location_noise value
+        if point_location_noise is None:
+            point_location_noise = 1
+
         self.batch_size = batch_size
+        self.point_location_noise = point_location_noise
         self.points_parameters_generator = points_parameters_generator
         self.backgrounds_generator = backgrounds_generator
 
@@ -159,3 +166,42 @@ class ClassifierValidationDataGenerator(ClassifierCheckerDataGenerator):
 class ClassifierTestDataGenerator(ClassifierCheckerDataGenerator):
     def __init__(self) -> None:
         super().__init__(os.path.join("images", "tagged_images_test"))
+
+
+class TaggedImagesGenerator():
+    batch_size: int
+    backgrounds_generator: SmallBackgroundGenerator
+    points_parameters_generator: PointsParametersGenerator
+
+    @staticmethod
+    def make_default_training_data_generator(batch_size):
+        points_parameters_generator = PointsParametersGenerator.make_default()
+        backgrounds_generator = SmallBackgroundGenerator.make_default()
+        return TaggedImagesGenerator(batch_size, points_parameters_generator, backgrounds_generator)
+
+    def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator):
+        self.batch_size = batch_size
+        self.points_parameters_generator = points_parameters_generator
+        self.backgrounds_generator = backgrounds_generator
+
+    def __next__(self):
+        return self.get_next_batch()
+
+    def get_next_batch(self):
+        """returns a batch of images of the size that was detailed in the initialization
+
+        Returns:
+            list of tuples, each tuple consists of a pair of images,
+            the first image is a synthesized image with some background and the second 
+            is a the same image but without the background.
+        """
+        image_and_tags = []
+        for i in range(self.batch_size):
+            image = self.backgrounds_generator.get_next()
+            empty_image = np.zeros(image.shape)
+            tags = add_points_to_image_multichannel(empty_image, self.points_parameters_generator)
+            # swap x and y becasue that is the convention for tagged images (we want to stick to the convention)
+            tags = tags[:, [1, 0, 2, 3]]
+            image += empty_image
+            image_and_tags.append((image, tags))
+        return image_and_tags
