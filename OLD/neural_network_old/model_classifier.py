@@ -72,7 +72,8 @@ class spots_classifier_net(nn.Module):
             nn.Linear(100, output_channels),
             nn.Flatten(0))
 
-    def forward(self, image, channel):
+    def forward(self, image, small_image_coordinates):
+        channel = small_image_coordinates[-1]  # channel is the last coordinate
         after_cnn = self.cnn_layers(image)
         after_arbitrator = self.arbitrator_layers[channel](after_cnn)
         rslt = self.linear_layers(after_arbitrator)

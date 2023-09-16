@@ -1,8 +1,9 @@
 End To End:
-- find ROI's in segments, to deal with memory issues (1)
+COMPLETE - find ROI's in segments, to deal with memory issues (1)
 
 Deal With Class Imbalance:
 - consider other loss functions (9)
+- current solution, undersample roi's with no spot inside them (see conversation with chatgpt)
 
 Dots Morpholagy:
 - we assume a specific microscope resolution and some dot size distribution. (8)
@@ -21,16 +22,17 @@ COMPLETE - crop around z (5~7 stacks) (13)
 Architecture:
 COMPLETE - give classifier ROI as image and ch coordinate (2)
 COMPLETE - implement classifier with ROI coordinate input (11) {conditional CNN (cCNN) spli the first linear layer to three}
-- comparison with synthetic tag for loss function: an roi is considered to contain a point if there exists a synthetic point with a distance of 2.5 from the roi's center. (12)
+COMPLETE - comparison with synthetic tag for loss function: an roi is considered to contain a point if there exists a synthetic point with a distance of 2.5 from the roi's center. (12)
 
 Training:
-- train classifier on actual ROI's, not random points (3)
+COMPLETE - train classifier on actual ROI's, not random points (3)
 
 Benchmarks:
 - RSFISH, bigfish, deepBlink, StarFish, airLocalize, fishquant
 
 MoreData:
 - Tal will talk to Liat regarding data from different microscope
+- make data have many z-stacks (as much as possible)
 
 QA:
 - compare SpotOn results with two independent human observers using cohen's kappa statistic (make sure to only compare z stacks in the middle.) 

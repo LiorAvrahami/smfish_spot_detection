@@ -4,14 +4,10 @@ import numpy.typing as npt
 from Global_Constants import *
 
 
-def crop_image(large_image: npt.NDArray[np.float64], top_left: tuple[int, int], relevant_channels=None, relevant_z_min=None):
-    if relevant_channels is None:
-        relevant_channels = DEFAULT_CHANNELS
-    if relevant_z_min is None:
-        relevant_z_min = DEFAULT_ZMIN
+def crop_image(large_image: npt.NDArray[np.float64], top_left: tuple[int, int], relevant_channels=None):
     return large_image[top_left[0]:top_left[0] + CROPPED_IMAGE_SIZE[0],
                        top_left[1]:top_left[1] + CROPPED_IMAGE_SIZE[1],
-                       relevant_z_min:relevant_z_min + CROPPED_IMAGE_SIZE[2],
+                       :,
                        relevant_channels]
 
 

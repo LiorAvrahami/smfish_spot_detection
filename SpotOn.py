@@ -10,7 +10,7 @@ from image_loader.Image2numpy import convert_image_file_to_numpy
 from image_manipulation.standardize_image import normalize_image
 
 # now comes the neural network
-from neural_network.model_classifier import spots_classifier_net as ClassifierNet
+from spot_classifier_NN.classifier_model import spots_classifier_net as ClassifierNet
 classifier_network = ClassifierNet()
 classifier_network.load_state_dict(torch.load("classifyNet.pt", map_location=torch.device('cpu')))
 

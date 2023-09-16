@@ -1,5 +1,7 @@
 import os
 import numpy as np
+from regions_of_interest_module.does_roi_have_point import does_roi_have_spot
+from regions_of_interest_module.get_regions_of_interest_from_net import get_default_denoise_net, get_regions_of_interest_generator_from_net
 from synthesize_points_module.synthesize_points import add_points_to_image_multichannel
 from synthesize_points_module.points_parameters_generator import PointsParametersGenerator
 from create_training_data.make_small_backgrounds import SmallBackgroundGenerator
@@ -77,46 +79,55 @@ class ClassifierTrainingDataGenerator():
             and the tag is a vector of size 4, with the elements:
             (does any channel have a point?, does the first channel have a point?, does the second channel have a point?, does the third channel have a point?)
         """
-        images = []
-        is_image_of_dot = []
-        num_dots = 0
-        num_not_dots = 0
+        images = []  # all the small images around roi's
+        small_coordinates = []  # the coordinates of the roi's relative to the small images
+        is_image_of_dot = []  # the tag of whether the image has a dot near it's center or not.
+        num_has_spot = 0
+        num_has_no_spot = 0
 
-        def append(img, tag):
+        def append(img, coords, tag):
+            nonlocal num_has_spot, num_has_no_spot
             if not is_valid_size(img):
                 return False
+
             images.append(img)
-            if tag is None:
-                tag = [0.0, 0.0, 0.0, 0.0]
-            if tag == 0:
-                tag = [1.0, 1.0, 0.0, 0.0]
-            if tag == 1:
-                tag = [1.0, 0.0, 1.0, 0.0]
-            if tag == 2:
-                tag = [1.0, 0.0, 0.0, 1.0]
+            small_coordinates.append(coords)
             is_image_of_dot.append(tag)
+
+            if tag == True:
+                num_has_spot += 1
+            if tag == False:
+                num_has_no_spot += 1
+
             return True
 
         while len(images) < self.batch_size:
+            # get next large image
             try:
-                image, dots_locations = self.get_image_and_points()
+                large_image, dots_locations = self.get_image_and_points()
             except StopIteration:
                 break
-            for dot_location in dots_locations:
-                if num_dots >= self.batch_size / 2:
+            # break up large image into small ROI images
+            denoise_net = get_default_denoise_net()
+            get_roi = get_regions_of_interest_generator_from_net(large_image, denoise_net, 1, False)
+            while True:  # loop over all roi's in the given image
+                roi_coords_arr = get_roi()[1]
+                if len(roi_coords_arr) != 1:
                     break
-
-                b_success = append(crop(image, int(dot_location[0])+np.random.randint(-3, 4),
-                int(dot_location[1]))+np.random.randint(-3, 4), dot_location[-1])
-                num_dots += 1 if b_success else 0
-            while num_not_dots < num_dots:
-                x = np.random.uniform(0, image.shape[0])
-                y = np.random.uniform(0, image.shape[1])
-                b_success = append(crop(image, int(x), int(y)), None)
-                num_not_dots += 1 if b_success else 0
+                roi_coords = roi_coords_arr[0]  # batch size is 1
+                # determine if roi has a point in it
+                has_point = does_roi_have_spot(roi_coords, dots_locations)
+                # skip if has enough of the current tag (this is in order to combat class imbalance)
+                if has_point and num_has_spot > self.batch_size / 2:
+                    continue
+                if (not has_point) and num_has_no_spot > self.batch_size / 2:
+                    continue
+                # crop tag and append
+                small_im_coords, small_image = crop(large_image, *roi_coords)
+                append(small_image, small_im_coords, has_point)
         images = images[:self.batch_size]
         is_image_of_dot = is_image_of_dot[:self.batch_size]
-        return images, is_image_of_dot
+        return images, small_coordinates, is_image_of_dot
 
 
 class ClassifierCheckerDataGenerator(ClassifierTrainingDataGenerator):
