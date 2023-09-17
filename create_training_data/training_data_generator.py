@@ -17,7 +17,7 @@ class NoiseReductionTrainingDataGenerator():
     @staticmethod
     def make_default_training_data_generator(batch_size):
         points_parameters_generator = PointsParametersGenerator.make_default()
-        backgrounds_generator = SmallBackgroundGenerator.make_default()
+        backgrounds_generator = SmallBackgroundGenerator.make_default(min_num_channels=1)
         return NoiseReductionTrainingDataGenerator(batch_size, points_parameters_generator, backgrounds_generator)
 
     def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator):
@@ -50,22 +50,15 @@ class ClassifierTrainingDataGenerator():
     batch_size: int
     backgrounds_generator: SmallBackgroundGenerator
     points_parameters_generator: PointsParametersGenerator
-    point_location_noise: int
 
     @staticmethod
-    def make_default_training_data_generator(batch_size, point_location_noise=None):
+    def make_default_training_data_generator(batch_size, min_num_channels):
         points_parameters_generator = PointsParametersGenerator.make_default()
-        backgrounds_generator = SmallBackgroundGenerator.make_default()
-        return ClassifierTrainingDataGenerator(batch_size, points_parameters_generator, backgrounds_generator, point_location_noise)
+        backgrounds_generator = SmallBackgroundGenerator.make_default(min_num_channels=min_num_channels)
+        return ClassifierTrainingDataGenerator(batch_size, points_parameters_generator, backgrounds_generator)
 
-    def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator, point_location_noise=None):
-
-        # default point_location_noise value
-        if point_location_noise is None:
-            point_location_noise = 1
-
+    def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator):
         self.batch_size = batch_size
-        self.point_location_noise = point_location_noise
         self.points_parameters_generator = points_parameters_generator
         self.backgrounds_generator = backgrounds_generator
 
@@ -174,9 +167,9 @@ class TaggedImagesGenerator():
     points_parameters_generator: PointsParametersGenerator
 
     @staticmethod
-    def make_default_training_data_generator(batch_size):
+    def make_default_training_data_generator(batch_size, num_channels):
         points_parameters_generator = PointsParametersGenerator.make_default()
-        backgrounds_generator = SmallBackgroundGenerator.make_default()
+        backgrounds_generator = SmallBackgroundGenerator.make_default(num_channels)
         return TaggedImagesGenerator(batch_size, points_parameters_generator, backgrounds_generator)
 
     def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator):

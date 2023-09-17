@@ -4,11 +4,9 @@ import numpy.typing as npt
 from Global_Constants import *
 
 
-def crop_image(large_image: npt.NDArray[np.float64], top_left: tuple[int, int], relevant_channels=None):
+def crop_image(large_image: npt.NDArray[np.float64], top_left: tuple[int, int]):
     return large_image[top_left[0]:top_left[0] + CROPPED_IMAGE_SIZE[0],
-                       top_left[1]:top_left[1] + CROPPED_IMAGE_SIZE[1],
-                       :,
-                       relevant_channels]
+                       top_left[1]:top_left[1] + CROPPED_IMAGE_SIZE[1], :, :]
 
 
 def normalize_image(image: npt.NDArray[np.float64], force_normalization_quantiles=None, original_big_image_array=None):

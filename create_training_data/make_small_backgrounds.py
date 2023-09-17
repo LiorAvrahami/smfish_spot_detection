@@ -11,24 +11,24 @@ from Global_Constants import FILE_EXTENTIONS_TO_IGNORE
 
 class SmallBackgroundGenerator:
     big_images: list[npt.NDArray]
-    # number of channels in the background images. the channels are chosen randomly.
-    num_channels: int
+    # minimum number of channels in the background images.
+    min_num_channels: int
 
     @staticmethod
-    def make_default(num_channels):
+    def make_default(min_num_channels):
         bg_dir_path = "images\\backgrounds"
         big_images_paths = [os.path.join(bg_dir_path, a) for a in os.listdir(
             bg_dir_path) if os.path.splitext(a)[-1] not in FILE_EXTENTIONS_TO_IGNORE]
         big_images = [convert_image_file_to_numpy(path) for path in big_images_paths]
         return SmallBackgroundGenerator(big_images=big_images,
-                                        num_channels=num_channels)
+                                        min_num_channels=min_num_channels)
 
-    def __init__(self, big_images: list[npt.NDArray], num_channels: int) -> None:
+    def __init__(self, big_images: list[npt.NDArray], min_num_channels: int) -> None:
         """Args:
             big_images (list[npt.NDArray]): the list  of large images to be used as backgrounds. 
                                             NOTE the given images don't need to be normalized
         """
-        self.num_channels = num_channels
+        self.min_num_channels = min_num_channels
         self.big_images = []
         for image in big_images:
             self.big_images.append(normalize_image(image))
@@ -37,24 +37,22 @@ class SmallBackgroundGenerator:
         return self.get_next()
 
     def get_next(self):
-        index = np.random.randint(0, len(self.big_images))
-        big_image = self.big_images[index]
+        # find an image with enough channels
+        while True:
+            index = np.random.randint(0, len(self.big_images))
+            big_image = self.big_images[index]
+            if big_image.shape[-1] >= self.min_num_channels:
+                break
 
-        return make_small_background(big_image, self.num_channels)
+        return make_small_background(big_image, self.min_num_channels)
 
 
-def make_small_background(large_background_image, num_channels):
+def make_small_background(large_background_image, min_num_channels):
     large_width = large_background_image.shape[0]
     large_height = large_background_image.shape[1]
     top_left = (int(np.random.uniform(0, large_width - CROPPED_IMAGE_SIZE[0])),
                 int(np.random.uniform(0, large_height - CROPPED_IMAGE_SIZE[1])))
-    # choose some random channels:
-    # TODO: assert image has at least  num_channels channels.
-    num_available_channels = large_background_image.shape[-1]
-    relevant_channels = np.random.choice(num_available_channels,num_channels,replace=False)
-    
-    cropped = crop_image(large_image=large_background_image, top_left=top_left,
-                         relevant_channels=relevant_channels)
+    cropped = crop_image(large_image=large_background_image, top_left=top_left)
     transformed = preform_random_transformation(cropped)
     return transformed
 

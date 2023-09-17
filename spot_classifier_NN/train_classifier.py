@@ -54,7 +54,7 @@ class MyDataset(Dataset):
         return (img, coords), label
 
 
-def train_valid_loop(Nepochs, learning_rate, batch_size, my_seed=0, add_name_str=''):
+def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=0, add_name_str=''):
 
     # Validation Constants
     val_generator = create_training_data.training_data_generator.ClassifierValidationDataGenerator()
@@ -65,14 +65,14 @@ def train_valid_loop(Nepochs, learning_rate, batch_size, my_seed=0, add_name_str
     val_ds = MyDataset(val_img, val_small_coordinates, val_label)
     valid_dl = DataLoader(val_ds, batch_size=len(val_label), shuffle=True)
 
-    net = spots_classifier_net(3)
+    net = spots_classifier_net(num_channels)
 
     start_time = datetime.datetime.now()
     np.random.seed(my_seed)
     torch.manual_seed(my_seed)
 
     imgs_generator = create_training_data.training_data_generator.ClassifierTrainingDataGenerator.make_default_training_data_generator(
-        batch_size=batch_size)
+        batch_size=batch_size, min_num_channels=num_channels)
 
     train_loss = []
     valid_loss = []
@@ -97,7 +97,7 @@ def train_valid_loop(Nepochs, learning_rate, batch_size, my_seed=0, add_name_str
 
     net.to(device)  # put it on the device
 
-    params_str = 'lr-' + str(learning_rate) + '_seed-' + str(my_seed) + add_name_str
+    params_str = 'lr-' + str(learning_rate) + '_seed-' + str(my_seed) + '_num_channels-' + num_channels + add_name_str
     pickle_output_filename = 'run_statistics_spot_detection_' + params_str + '.pickle'
     print("Pickle file: " + pickle_output_filename)
 
@@ -211,11 +211,3 @@ def train_valid_loop(Nepochs, learning_rate, batch_size, my_seed=0, add_name_str
     net.cpu()
 
     return net
-
-
-if __name__ == "__main__":
-    b_single = True
-    if b_single:
-        # single run
-        train_valid_loop(batch_size=3000, Nepochs=201,
-                         learning_rate=1e-2, my_seed=7, add_name_str='single')

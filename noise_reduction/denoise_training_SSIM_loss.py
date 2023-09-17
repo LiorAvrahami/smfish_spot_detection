@@ -82,7 +82,7 @@ def train_valid_loop(net, num_of_batches=1000, Nepochs=40, learning_rate=0.001):
             loss = ssim_loss(pred, yb)  # Use the SSIM loss
             valid_loss_epoch.append(loss.item())
 
-    valid_loss.append(np.mean(valid_loss_epoch))
+        valid_loss.append(np.mean(valid_loss_epoch))
 
         ### Model checkpointing
         if epoch > 0:
