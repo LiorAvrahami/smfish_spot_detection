@@ -50,14 +50,14 @@ class MyDataset(Dataset):
         img = torch.tensor(self.img_array[idx].copy()).float()
         img = img.permute(3, 2, 1, 0)
         coords = torch.tensor(self.small_coordinates_array[idx])
-        label = torch.tensor(self.label_array[idx])
+        label = torch.tensor(self.label_array[idx]).float()
         return (img, coords), label
 
 
-def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=0, add_name_str=''):
+def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=None, add_name_str=''):
 
     # Validation Constants
-    val_generator = create_training_data.training_data_generator.ClassifierValidationDataGenerator()
+    val_generator = create_training_data.training_data_generator.ClassifierValidationDataGenerator(num_channels)
     val_data = val_generator.get_next_batch()
     val_img = val_data[IMG]
     val_small_coordinates = val_data[SMALL_COORDS]
@@ -68,11 +68,13 @@ def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=0
     net = spots_classifier_net(num_channels)
 
     start_time = datetime.datetime.now()
-    np.random.seed(my_seed)
-    torch.manual_seed(my_seed)
+    if my_seed is not None:
+        np.random.seed(my_seed)
+        torch.manual_seed(my_seed)
 
-    imgs_generator = create_training_data.training_data_generator.ClassifierTrainingDataGenerator.make_default_training_data_generator(
-        batch_size=batch_size, min_num_channels=num_channels)
+    # TODO CHANGE BACK 
+    imgs_generator = create_training_data.training_data_generator.ClassifierTrainingDataGenerator.make_training_data_generator_with_empty_backgrounds(
+        batch_size=batch_size, num_channels=num_channels)
 
     train_loss = []
     valid_loss = []
@@ -96,8 +98,7 @@ def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=0
         device = torch.device("cuda:0")
 
     net.to(device)  # put it on the device
-
-    params_str = 'lr-' + str(learning_rate) + '_seed-' + str(my_seed) + '_num_channels-' + num_channels + add_name_str
+    params_str = f"lr-{learning_rate}_seed-{my_seed}_num_channels-{num_channels}__{add_name_str}"
     pickle_output_filename = 'run_statistics_spot_detection_' + params_str + '.pickle'
     print("Pickle file: " + pickle_output_filename)
 
@@ -156,7 +157,6 @@ def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=0
 
         image_and_small_coords, b_has_spot = next(iter(valid_dl))
         image, small_coords = image_and_small_coords
-        image = image.to(device)
 
         image = image.to(device)  # move the validation input to the device
         b_has_spot = b_has_spot.to(device)  # move the validation target to the device

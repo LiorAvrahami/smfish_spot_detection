@@ -50,23 +50,37 @@ class ClassifierTrainingDataGenerator():
     batch_size: int
     backgrounds_generator: SmallBackgroundGenerator
     points_parameters_generator: PointsParametersGenerator
+    num_channels: int
 
     @staticmethod
-    def make_default_training_data_generator(batch_size, min_num_channels):
+    def make_default_training_data_generator(batch_size, num_channels):
         points_parameters_generator = PointsParametersGenerator.make_default()
-        backgrounds_generator = SmallBackgroundGenerator.make_default(min_num_channels=min_num_channels)
-        return ClassifierTrainingDataGenerator(batch_size, points_parameters_generator, backgrounds_generator)
+        backgrounds_generator = SmallBackgroundGenerator.make_default(min_num_channels=num_channels)
+        return ClassifierTrainingDataGenerator(batch_size, points_parameters_generator, backgrounds_generator, num_channels=num_channels)
 
-    def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator):
+    @staticmethod
+    def make_training_data_generator_with_empty_backgrounds(batch_size, num_channels):
+        points_parameters_generator = PointsParametersGenerator.make_default()
+        backgrounds_generator = SmallBackgroundGenerator.make_empty_background_generator(min_num_channels=num_channels)
+        return ClassifierTrainingDataGenerator(batch_size, points_parameters_generator, backgrounds_generator, num_channels=num_channels)
+
+    def __init__(self, batch_size, points_parameters_generator: PointsParametersGenerator, backgrounds_generator: SmallBackgroundGenerator, num_channels: int):
         self.batch_size = batch_size
         self.points_parameters_generator = points_parameters_generator
         self.backgrounds_generator = backgrounds_generator
+        self.num_channels = num_channels
 
     def __next__(self):
         return self.get_next_batch()
 
-    def get_image_and_points(self):
-        image = self.backgrounds_generator.get_next()
+    def get_image_and_points(self, min_num_channels):
+        # get random image with enough channels
+        image = None
+        while image is None:
+            image = self.backgrounds_generator.get_next()
+            if image.shape[-1] < min_num_channels:
+                image = None
+
         dots_locations = add_points_to_image_multichannel(image, self.points_parameters_generator)
         return image, dots_locations
 
@@ -87,9 +101,9 @@ class ClassifierTrainingDataGenerator():
 
         def append(img, coords, tag):
             nonlocal num_has_spot, num_has_no_spot
+            assert img.shape[-1] == self.num_channels
             if not is_valid_size(img):
                 return False
-
             images.append(img)
             small_coordinates.append(coords)
             is_image_of_dot.append(tag)
@@ -104,27 +118,29 @@ class ClassifierTrainingDataGenerator():
         while len(images) < self.batch_size:
             # get next large image
             try:
-                large_image, dots_locations = self.get_image_and_points()
+                large_image, dots_locations = self.get_image_and_points(self.num_channels)
             except StopIteration:
                 break
             # break up large image into small ROI images
             denoise_net = get_default_denoise_net()
-            get_roi = get_regions_of_interest_generator_from_net(large_image, denoise_net, 1, False)
+            get_roi = get_regions_of_interest_generator_from_net(
+                large_image, denoise_net, batch_size=1, num_channels_out=self.num_channels, b_use_denoising_net=False, verbosity=False)
             while True:  # loop over all roi's in the given image
-                roi_coords_arr = get_roi()[1]
-                if len(roi_coords_arr) != 1:
+                roi_image_arr, roi_sml_coords_arr, roi_big_coords_arr = get_roi()
+                if len(roi_sml_coords_arr) != 1:
                     break
-                roi_coords = roi_coords_arr[0]  # batch size is 1
+                roi_sml_coords = roi_sml_coords_arr[0]  # batch size is 1
+                roi_image = roi_image_arr[0]            # batch size is 1
+                roi_big_coords = roi_big_coords_arr[0]  # batch size is 1
                 # determine if roi has a point in it
-                has_point = does_roi_have_spot(roi_coords, dots_locations)
+                has_point = does_roi_have_spot(roi_big_coords, dots_locations)
                 # skip if has enough of the current tag (this is in order to combat class imbalance)
-                if has_point and num_has_spot > self.batch_size / 2:
+                if has_point and num_has_spot >= self.batch_size / 2:
                     continue
-                if (not has_point) and num_has_no_spot > self.batch_size / 2:
+                if (not has_point) and num_has_no_spot >= self.batch_size / 2:
                     continue
                 # crop tag and append
-                small_im_coords, small_image = crop(large_image, *roi_coords)
-                append(small_image, small_im_coords, has_point)
+                append(roi_image, roi_sml_coords, has_point)
         images = images[:self.batch_size]
         is_image_of_dot = is_image_of_dot[:self.batch_size]
         return images, small_coordinates, is_image_of_dot
@@ -134,31 +150,36 @@ class ClassifierCheckerDataGenerator(ClassifierTrainingDataGenerator):
     images_tags: list[tuple]
     image_index = 0
 
-    def __init__(self, folder_path: str) -> None:
-        super().__init__(10000, None, None)
+    def __init__(self, folder_path: str, num_channels) -> None:
+        super().__init__(10000, None, None, num_channels)
         image_folder_names = os.listdir(folder_path)
         self.images_tags = []
         for name in image_folder_names:
             image, points_array = load_tagged_image(os.path.join(folder_path, name))
             self.images_tags.append((image.transpose(1, 0, 2, 3), points_array))
 
-    def get_image_and_points(self):
-        if self.image_index >= len(self.images_tags):
-            self.image_index = 0
-            raise StopIteration()
-        v = self.images_tags[self.image_index]
-        self.image_index += 1
-        return v
+    def get_image_and_points(self, min_num_channels):
+        # get random image with enough channels
+        image, tag = None, None
+        while image is None:
+            if self.image_index >= len(self.images_tags):
+                self.image_index = 0
+                raise StopIteration()
+            image, tag = self.images_tags[self.image_index]
+            self.image_index += 1
+            if image.shape[-1] < min_num_channels:
+                image = None
+        return image, tag
 
 
 class ClassifierValidationDataGenerator(ClassifierCheckerDataGenerator):
-    def __init__(self) -> None:
-        super().__init__(os.path.join("images", "tagged_images_validation"))
+    def __init__(self, num_channels) -> None:
+        super().__init__(os.path.join("images", "tagged_images_validation"), num_channels)
 
 
 class ClassifierTestDataGenerator(ClassifierCheckerDataGenerator):
-    def __init__(self) -> None:
-        super().__init__(os.path.join("images", "tagged_images_test"))
+    def __init__(self, num_channels) -> None:
+        super().__init__(os.path.join("images", "tagged_images_test"), num_channels)
 
 
 class TaggedImagesGenerator():

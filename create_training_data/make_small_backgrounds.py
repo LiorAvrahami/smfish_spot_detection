@@ -23,6 +23,12 @@ class SmallBackgroundGenerator:
         return SmallBackgroundGenerator(big_images=big_images,
                                         min_num_channels=min_num_channels)
 
+    @staticmethod
+    def make_empty_background_generator(min_num_channels):
+        big_images = [np.zeros((100, 100, 10, i+1)) for i in range(10)]
+        return SmallBackgroundGenerator(big_images=big_images,
+                                        min_num_channels=min_num_channels)
+
     def __init__(self, big_images: list[npt.NDArray], min_num_channels: int) -> None:
         """Args:
             big_images (list[npt.NDArray]): the list  of large images to be used as backgrounds. 

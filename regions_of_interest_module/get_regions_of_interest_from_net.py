@@ -22,7 +22,7 @@ def get_default_denoise_net():
     return _defualt_denoise_net
 
 
-def get_regions_of_interest_generator_from_net(image, denoise_net, batch_size, verbosity=True, b_use_denoising_net=True):
+def get_regions_of_interest_generator_from_net(image, denoise_net, batch_size, num_channels_out, verbosity=True, b_use_denoising_net=True):
     """
     creates a generator that creates and returns batches of ROI images on demand.
     Example Call:
@@ -33,9 +33,15 @@ def get_regions_of_interest_generator_from_net(image, denoise_net, batch_size, v
         image (_type_): _description_
         net (_type_): _description_
         batch_size (_type_): _description_
+        num_channels_out : the number of channels in the cropped images
         verbosity (bool): if true then prints diagnostics
 
-    Returns: a function. the returned function takes no arguments and returns a tuple of small images and the coordinates of these images in 4d:
+    Returns: a function. the returned function takes no arguments and returns a tuple of size 3:
+                        (
+                            array of cropped images,
+                            array of the 4d coordinates of the roi in the cropped images,
+                            array of the 4d coordinates of the roi in the large image
+                        )
     """
 
     # clean image with noise reduction net
@@ -57,20 +63,22 @@ def get_regions_of_interest_generator_from_net(image, denoise_net, batch_size, v
         # prepare a batch of small images
         roi_batch_images = []
         roi_batch_small_coords = []
+        roi_batch_big_coords = []
         while len(roi_batch_images) < batch_size:
             try:
                 point = next(roi_coordinates_iter)
             except StopIteration:
                 break
 
-            small_coords, small_image = crop(image, *point)
+            small_coords, small_image = crop(num_channels_out, image, *point)
             if not is_valid_size(small_image):
                 continue
             roi_batch_images.append(small_image)
             roi_batch_small_coords.append(small_coords)
+            roi_batch_big_coords.append(point)
 
         roi_batch_images = np.array(roi_batch_images)
         roi_batch_small_coords = np.array(roi_batch_small_coords)
-        return roi_batch_images, roi_batch_small_coords
+        return roi_batch_images, roi_batch_small_coords, roi_batch_big_coords
 
     return batch_generator_function
