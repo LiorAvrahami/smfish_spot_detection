@@ -56,6 +56,9 @@ def get_regions_of_interest_generator_from_net(image, denoise_net, batch_size, n
     roi_coordinates: list[tuple[int, int, int, int]]  # points_of_interest = list of (x,y,z) points
     printv(f"done extracting points of interest, found {len(roi_coordinates)}", verbosity=verbosity)
 
+    # apply random permutation to points
+    roi_coordinates = [roi_coordinates[i] for i in np.random.permutation(len(roi_coordinates))]
+
     roi_coordinates_iter = iter(roi_coordinates)
 
     def batch_generator_function():

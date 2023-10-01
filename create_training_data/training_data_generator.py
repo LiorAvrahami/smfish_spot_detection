@@ -82,9 +82,9 @@ class ClassifierTrainingDataGenerator():
                 image = None
 
         dots_locations = add_points_to_image_multichannel(image, self.points_parameters_generator)
-        return image, dots_locations
+        return image, dots_locations, None
 
-    def get_next_batch(self):
+    def get_next_batch_priv(self):
         """returns a batch of images of the size that was detailed in the initialization
 
         Returns:
@@ -95,18 +95,22 @@ class ClassifierTrainingDataGenerator():
         """
         images = []  # all the small images around roi's
         small_coordinates = []  # the coordinates of the roi's relative to the small images
+        big_coordinates = []  # the coordinates of the roi's relative to the big images
         is_image_of_dot = []  # the tag of whether the image has a dot near it's center or not.
+        indexes_of_used_images = []
         num_has_spot = 0
         num_has_no_spot = 0
 
-        def append(img, coords, tag):
+        def append(img, sml_coords, big_coords, tag, image_index):
             nonlocal num_has_spot, num_has_no_spot
             assert img.shape[-1] == self.num_channels
             if not is_valid_size(img):
                 return False
             images.append(img)
-            small_coordinates.append(coords)
+            small_coordinates.append(sml_coords)
+            big_coordinates.append(big_coords)
             is_image_of_dot.append(tag)
+            indexes_of_used_images.append(image_index)
 
             if tag == True:
                 num_has_spot += 1
@@ -118,13 +122,13 @@ class ClassifierTrainingDataGenerator():
         while len(images) < self.batch_size:
             # get next large image
             try:
-                large_image, dots_locations = self.get_image_and_points(self.num_channels)
+                large_image, dots_locations, image_index = self.get_image_and_points(self.num_channels)
             except StopIteration:
                 break
             # break up large image into small ROI images
             denoise_net = get_default_denoise_net()
             get_roi = get_regions_of_interest_generator_from_net(
-                large_image, denoise_net, batch_size=1, num_channels_out=self.num_channels, b_use_denoising_net=False, verbosity=False)
+                large_image, denoise_net, batch_size=1, num_channels_out=self.num_channels, b_use_denoising_net=True, verbosity=False)
             while True:  # loop over all roi's in the given image
                 roi_image_arr, roi_sml_coords_arr, roi_big_coords_arr = get_roi()
                 if len(roi_sml_coords_arr) != 1:
@@ -140,36 +144,64 @@ class ClassifierTrainingDataGenerator():
                 if (not has_point) and num_has_no_spot >= self.batch_size / 2:
                     continue
                 # crop tag and append
-                append(roi_image, roi_sml_coords, has_point)
+                append(roi_image, roi_sml_coords, roi_big_coords, has_point, image_index)
         images = images[:self.batch_size]
         is_image_of_dot = is_image_of_dot[:self.batch_size]
-        return images, small_coordinates, is_image_of_dot
+        return images, small_coordinates, big_coordinates, is_image_of_dot, indexes_of_used_images
+
+    def get_next_batch(self):
+        vals = self.get_next_batch_priv()
+        return vals[:4]
 
 
 class ClassifierCheckerDataGenerator(ClassifierTrainingDataGenerator):
+    image_folder_names: list[str]
     images_tags: list[tuple]
     image_index = 0
 
+    @staticmethod
+    def make_default_training_data_generator(batch_size, num_channels):
+        # this function is only for initiating traning data generators.
+        raise Exception()
+
     def __init__(self, folder_path: str, num_channels) -> None:
-        super().__init__(10000, None, None, num_channels)
-        image_folder_names = os.listdir(folder_path)
+        super().__init__(100000, None, None, num_channels)
+        self.image_folder_names = sorted(os.listdir(folder_path))
         self.images_tags = []
-        for name in image_folder_names:
+        for name in self.image_folder_names:
             image, points_array = load_tagged_image(os.path.join(folder_path, name))
             self.images_tags.append((image.transpose(1, 0, 2, 3), points_array))
 
     def get_image_and_points(self, min_num_channels):
         # get random image with enough channels
-        image, tag = None, None
+        image, tag, used_image_index = None, None, None
         while image is None:
             if self.image_index >= len(self.images_tags):
                 self.image_index = 0
                 raise StopIteration()
             image, tag = self.images_tags[self.image_index]
+            used_image_index = self.image_index
             self.image_index += 1
             if image.shape[-1] < min_num_channels:
                 image = None
-        return image, tag
+        return image, tag, used_image_index
+
+    def get_next_batch(self):
+        images, small_coordinates, big_coordinates, is_image_of_dot, indexes_of_used_images = self.get_next_batch_priv()
+
+        # filter out some images of not dots in order for the validation data to be balanced
+        indexes_to_keep = [i for i in range(len(is_image_of_dot)) if is_image_of_dot[i] == True]
+        indexes_of_not_dots = [i for i in np.random.permutation(len(is_image_of_dot)) if is_image_of_dot[i] == False]
+        indexes_to_keep += indexes_of_not_dots[:len(indexes_to_keep)]
+
+        new_images = [images[i] for i in indexes_to_keep]
+        new_small_coordinates = [small_coordinates[i] for i in indexes_to_keep]
+        new_big_coordinates = [big_coordinates[i] for i in indexes_to_keep]
+        new_is_image_of_dot = [is_image_of_dot[i] for i in indexes_to_keep]
+        new_indexes_of_used_images = [indexes_of_used_images[i] for i in indexes_to_keep]
+
+        names_of_used_images = [self.image_folder_names[i] for i in new_indexes_of_used_images]
+        return new_images, new_small_coordinates, new_big_coordinates, new_is_image_of_dot, names_of_used_images
 
 
 class ClassifierValidationDataGenerator(ClassifierCheckerDataGenerator):

@@ -25,7 +25,7 @@ class SmallBackgroundGenerator:
 
     @staticmethod
     def make_empty_background_generator(min_num_channels):
-        big_images = [np.zeros((100, 100, 10, i+1)) for i in range(10)]
+        big_images = [np.zeros((100, 100, 10, i + 1)) for i in range(3)]
         return SmallBackgroundGenerator(big_images=big_images,
                                         min_num_channels=min_num_channels)
 
@@ -60,7 +60,7 @@ def make_small_background(large_background_image, min_num_channels):
                 int(np.random.uniform(0, large_height - CROPPED_IMAGE_SIZE[1])))
     cropped = crop_image(large_image=large_background_image, top_left=top_left)
     transformed = preform_random_transformation(cropped)
-    return transformed
+    return np.copy(transformed)
 
 
 def preform_random_transformation(image):

@@ -30,7 +30,7 @@ torch.cuda.is_available()
 np.random.seed(0)
 
 loss_function = nn.BCEWithLogitsLoss()
-TAG = 2
+TAG = 3
 SMALL_COORDS = 1
 IMG = 0
 BATCH_SIZE_MUL_FACTOR = 10

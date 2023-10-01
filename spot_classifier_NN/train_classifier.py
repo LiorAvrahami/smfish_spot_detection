@@ -30,10 +30,10 @@ torch.cuda.is_available()
 np.random.seed(0)
 
 loss_function = nn.BCEWithLogitsLoss()
-TAG = 2
+TAG = 3
 SMALL_COORDS = 1
 IMG = 0
-BATCH_SIZE_MUL_FACTOR = 10
+BATCH_SIZE_MUL_FACTOR = 1
 
 
 class MyDataset(Dataset):
@@ -54,7 +54,7 @@ class MyDataset(Dataset):
         return (img, coords), label
 
 
-def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=None, add_name_str=''):
+def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=None, add_name_str='', b_plot_data=True, b_use_empty_backgrounds=False, net_to_continue_training=None):
 
     # Validation Constants
     val_generator = create_training_data.training_data_generator.ClassifierValidationDataGenerator(num_channels)
@@ -65,16 +65,22 @@ def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=N
     val_ds = MyDataset(val_img, val_small_coordinates, val_label)
     valid_dl = DataLoader(val_ds, batch_size=len(val_label), shuffle=True)
 
-    net = spots_classifier_net(num_channels)
+    if net_to_continue_training is None:
+        net = spots_classifier_net(num_channels)
+    else:
+        net = net_to_continue_training
 
     start_time = datetime.datetime.now()
     if my_seed is not None:
         np.random.seed(my_seed)
         torch.manual_seed(my_seed)
 
-    # TODO CHANGE BACK 
-    imgs_generator = create_training_data.training_data_generator.ClassifierTrainingDataGenerator.make_training_data_generator_with_empty_backgrounds(
-        batch_size=batch_size, num_channels=num_channels)
+    if not b_use_empty_backgrounds:
+        imgs_generator = create_training_data.training_data_generator.ClassifierTrainingDataGenerator.make_default_training_data_generator(
+            batch_size=batch_size, num_channels=num_channels)
+    else:
+        imgs_generator = create_training_data.training_data_generator.ClassifierTrainingDataGenerator.make_training_data_generator_with_empty_backgrounds(
+            batch_size=batch_size, num_channels=num_channels)
 
     train_loss = []
     valid_loss = []
@@ -98,7 +104,7 @@ def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=N
         device = torch.device("cuda:0")
 
     net.to(device)  # put it on the device
-    params_str = f"lr-{learning_rate}_seed-{my_seed}_num_channels-{num_channels}__{add_name_str}"
+    params_str = f"empty_bg={b_use_empty_backgrounds}_lr-{learning_rate}_batchsz-{batch_size}_num_channels-{num_channels}_seed-{my_seed}__{add_name_str}"
     pickle_output_filename = 'run_statistics_spot_detection_' + params_str + '.pickle'
     print("Pickle file: " + pickle_output_filename)
 
@@ -107,21 +113,52 @@ def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=N
         train_img, train_small_coordinates, train_label = generated_data[IMG], generated_data[SMALL_COORDS], generated_data[TAG]
 
         train_ds = MyDataset(train_img, train_small_coordinates, train_label)
-        train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE_MUL_FACTOR * batch_size, shuffle=True)
+        train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
 
         # for epoch in tqdm(range(Nepochs)):# loop over Nepochs
         epochs.append(epoch)
         # Training
         net.train()
 
-        for image_and_small_coords, b_has_spot in train_dl:
+        loss_cumulative = []
+        b_has_spot_cumulative = []
+        pred_prob_cumulative = []
+        for i in range(BATCH_SIZE_MUL_FACTOR):
+            image_and_small_coords, b_has_spot = next(iter(train_dl))
             image, small_coords = image_and_small_coords
+
+            # plot for debugging
+            if b_plot_data:
+                import matplotlib.pyplot as plt
+                idx_no_spot = np.argmin(b_has_spot)
+                idx_yes_spot = np.argmax(b_has_spot)
+                z = 2
+                _, axes = plt.subplots(num_channels + 1, 2)
+                axes[0, 0].set_title(f"NoSpot\n{small_coords[idx_no_spot][-1]}")
+                for i in range(num_channels):
+                    max_no_spot = torch.max(image[idx_no_spot][i, z])
+                    axes[i, 0].imshow(image[idx_no_spot][i, z, :, :], vmax=max_no_spot)
+                ch = small_coords[idx_no_spot][-1]
+                other_z = torch.mean(image[idx_no_spot][ch, [z - 2, z + 2], :, :], dim=0)
+                max_no_spot = torch.max(image[idx_no_spot][ch, z])
+                axes[-1, 0].imshow(other_z, vmax=max_no_spot)
+
+                axes[0, 1].set_title(f"YesSpot\n{small_coords[idx_yes_spot][-1]}")
+                for i in range(num_channels):
+                    max_yes_spot = torch.max(image[idx_yes_spot][i, z])
+                    axes[i, 1].imshow(image[idx_yes_spot][i, z, :, :], vmax=max_yes_spot)
+                ch = small_coords[idx_yes_spot][-1]
+                other_z = torch.mean(image[idx_yes_spot][ch, [z - 2, z + 2], :, :], dim=0)
+                max_yes_spot = torch.max(image[idx_yes_spot][ch, z])
+                axes[-1, 1].imshow(other_z, vmax=max_yes_spot)
+                plt.pause(0.01)
+
             # image is the small cropped image around some roi,
             # small_coords is the position of the roi relative to the crop,
             # b_has_spot is the tag and can be 0 or 1
-            # small_coords doesn't need to be sent to gpu
             image = image.to(device)
             b_has_spot = b_has_spot.to(device)
+            small_coords = small_coords.to(device)
 
             optimizer.zero_grad()  # make sure the gradients are zeroed-out each time!
 
@@ -136,47 +173,53 @@ def train_valid_loop(num_channels, Nepochs, learning_rate, batch_size, my_seed=N
 
             pred = pred.cpu()
             b_has_spot = b_has_spot.cpu()
-            pred_prob = pred_prob.cpu()
-
-            pred = pred.detach().numpy()
             b_has_spot = b_has_spot.detach().numpy()
+            pred_prob = pred_prob.cpu()
             pred_prob = pred_prob.detach().numpy()
-
-            # get confusion matrix for batch
-            tp, fp, fn, tn = get_confusion_matrix(pred_prob, b_has_spot)
-            train_tp_list.append(tp)
-            train_fp_list.append(fp)
-            train_tn_list.append(tn)
-            train_fn_list.append(fn)
+            b_has_spot_cumulative += list(b_has_spot)
+            pred_prob_cumulative += list(pred_prob)
 
             # take the average of the loss over each batch and append it to the list
-            train_loss.append(loss.item())
+            loss_cumulative.append(loss.item())
+
+        train_loss.append(np.mean(loss_cumulative))
+        # tp tn fp fn for validation
+        tp, fp, fn, tn = get_confusion_matrix(pred_prob_cumulative, b_has_spot_cumulative)
+        train_tp_list.append(tp)
+        train_fp_list.append(fp)
+        train_tn_list.append(tn)
+        train_fn_list.append(fn)
 
         # Validation
         net.eval()
 
-        image_and_small_coords, b_has_spot = next(iter(valid_dl))
-        image, small_coords = image_and_small_coords
+        b_has_spot_cumulative = []
+        pred_prob_cumulative = []
+        loss_cumulative = []
+        for image_and_small_coords, b_has_spot in valid_dl:
+            image, small_coords = image_and_small_coords
 
-        image = image.to(device)  # move the validation input to the device
-        b_has_spot = b_has_spot.to(device)  # move the validation target to the device
+            image = image.to(device)  # move the validation input to the device
+            small_coords = small_coords.to(device)  # move the validation input to the device
+            b_has_spot = b_has_spot.to(device)  # move the validation target to the device
 
-        pred = net(image, small_coords)  # same as in training loop
-        loss = loss_function(pred, b_has_spot)  # same as in training loop
-        valid_loss.append(loss.item())
+            pred = net(image, small_coords)  # same as in training loop
+            loss = loss_function(pred, b_has_spot)  # same as in training loop
+            loss_cumulative.append(loss.item())
 
-        pred_prob = torch.sigmoid(pred)
+            pred_prob = torch.sigmoid(pred)
 
-        pred = pred.cpu()
-        b_has_spot = b_has_spot.cpu()
-        pred_prob = pred_prob.cpu()
+            pred = pred.cpu()
+            b_has_spot = b_has_spot.cpu()
+            b_has_spot = b_has_spot.detach().numpy()
+            pred_prob = pred_prob.cpu()
+            pred_prob = pred_prob.detach().numpy()
+            b_has_spot_cumulative += list(b_has_spot)
+            pred_prob_cumulative += list(pred_prob)
 
-        pred = pred.detach().numpy()
-        b_has_spot = b_has_spot.detach().numpy()
-        pred_prob = pred_prob.detach().numpy()
-
+        valid_loss.append(np.mean(loss_cumulative))
         # tp tn fp fn for validation
-        tp, fp, fn, tn = get_confusion_matrix(pred_prob, b_has_spot)
+        tp, fp, fn, tn = get_confusion_matrix(pred_prob_cumulative, b_has_spot_cumulative)
         valid_tp_list.append(tp)
         valid_fp_list.append(fp)
         valid_tn_list.append(tn)
